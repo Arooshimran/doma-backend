@@ -1,4 +1,3 @@
-import { GET } from './../../my-route/route';
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { generateOrderNumber } from "@/lib/utils"
