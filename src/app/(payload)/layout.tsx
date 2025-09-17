@@ -15,11 +15,16 @@ type Args = {
 
 const serverFunction: ServerFunctionClient = async function (args) {
   'use server'
-  return handleServerFunctions({
-    ...args,
-    config,
-    importMap,
-  })
+  try {
+    return await handleServerFunctions({
+      ...args,
+      config,
+      importMap,
+    })
+  } catch (error) {
+    console.error('[ServerFunction Error]', error)
+    throw error
+  }
 }
 
 const Layout = ({ children }: Args) => (
