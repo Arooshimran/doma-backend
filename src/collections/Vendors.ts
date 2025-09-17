@@ -8,17 +8,33 @@ const Vendors: CollectionConfig = {
     {
       path: "/login",
       method: "post",
-      handler: (async (req, res) => {
+  handler: (async (req: import('payload').PayloadRequest, res: import('express').Response) => {
         try {
+
+          // Ensure req.body is a plain object with email and password
+
+          let email: string | undefined = undefined;
+          let password: string | undefined = undefined;
+          if (
+            req.body &&
+            typeof req.body === 'object' &&
+            !('pipe' in req.body) &&
+            'email' in req.body &&
+            'password' in req.body
+          ) {
+            email = (req.body as any).email;
+            password = (req.body as any).password;
+          }
+
+          if (typeof email !== 'string' || typeof password !== 'string') {
+            throw new Error('Email and password are required and must be strings');
+          }
+
           const result = await req.payload.login({
             collection: "vendors",
-            data: {
-              email: req.body.email,
-              password: req.body.password,
-            },
+            data: { email, password },
             req,
-            res,
-          })
+          });
 
           return res.status(200).json(result)
         } catch (err: any) {
