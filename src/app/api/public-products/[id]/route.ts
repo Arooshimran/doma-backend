@@ -17,7 +17,7 @@ export async function OPTIONS() {
   })
 }
 
-export async function GET(request: NextRequest, context: { params: Record<string, string> }) {
+export async function GET(request: NextRequest, context: any) {
   try {
     const { params } = context;
     console.log('🔍 Fetching product by ID:', params.id)
@@ -53,7 +53,7 @@ export async function GET(request: NextRequest, context: { params: Record<string
   }
 }
 
-export async function DELETE(request: NextRequest, context: { params: Record<string, string> }) {
+export async function DELETE(request: NextRequest, context: any) {
   try {
     const { params } = context;
     const payload = await getPayloadClient();
@@ -74,7 +74,7 @@ export async function DELETE(request: NextRequest, context: { params: Record<str
 }
 
 // PUT handler (update product)
-export async function PUT(request: NextRequest, context: { params: Record<string, string> }) {
+export async function PUT(request: NextRequest, context: any) {
   try {
     const { params } = context;
     const payload = await getPayloadClient();
