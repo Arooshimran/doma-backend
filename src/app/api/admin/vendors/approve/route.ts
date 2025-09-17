@@ -165,8 +165,12 @@ export async function POST(request: NextRequest) {
       })
 
       console.log("✅ Approval email sent successfully")
-    } catch (emailError: any) {
-      console.error("❌ Failed to send approval email:", emailError.message)
+    } catch (emailError: unknown) {
+      if (emailError && typeof emailError === 'object' && 'message' in emailError) {
+        console.error("❌ Failed to send approval email:", (emailError as { message: string }).message)
+      } else {
+        console.error("❌ Failed to send approval email:", emailError)
+      }
       // Don't fail the whole request if email fails
       console.log("⚠️ Continuing despite email failure...")
     }
@@ -192,18 +196,26 @@ export async function POST(request: NextRequest) {
       }
     )
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("💥 === VENDOR APPROVAL FAILED ===")
-    console.error("Approval error:", {
-      message: error.message,
-      name: error.name,
-      stack: error.stack?.split('\n').slice(0, 3)
-    })
+    if (error && typeof error === 'object' && 'message' in error) {
+      console.error("Approval error:", {
+        message: (error as { message: string }).message,
+        name: (error as { name?: string }).name,
+        stack: (error as { stack?: string }).stack?.split('\n').slice(0, 3)
+      })
+    } else {
+      console.error("Approval error:", error)
+    }
 
     return NextResponse.json(
       {
         error: "Failed to approve vendor",
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        details:
+          process.env.NODE_ENV === 'development' &&
+          error && typeof error === 'object' && 'message' in error
+            ? (error as { message: string }).message
+            : undefined
       },
       {
         status: 500,
