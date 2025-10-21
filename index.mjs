@@ -1,50 +1,38 @@
-import express from 'express'
-import { getPayload } from 'payload'
-import config from './src/payload.config.js'
+import { createServer } from 'http'
+import { parse } from 'url'
+import next from 'next'
 
-const app = express()
-const PORT = process.env.PORT || 3000
-const HOST = '0.0.0.0'
+const dev = process.env.NODE_ENV !== 'production'
+const hostname = '0.0.0.0'
+const port = parseInt(process.env.PORT || '3000', 10)
 
-// Initialize Payload
-let payload
-try {
-  payload = await getPayload({
-    config,
+console.log(`🚀 Starting server on ${hostname}:${port}`)
+
+// when using middleware `hostname` and `port` must be provided below
+const app = next({ dev, hostname, port })
+const handle = app.getRequestHandler()
+
+app.prepare().then(() => {
+  createServer(async (req, res) => {
+    try {
+      // Be sure to pass `true` as the second argument to `url.parse`.
+      // This tells it to parse the query portion of the URL.
+      const parsedUrl = parse(req.url, true)
+      const { pathname, query } = parsedUrl
+
+      await handle(req, res, parsedUrl)
+    } catch (err) {
+      console.error('Error occurred handling', req.url, err)
+      res.statusCode = 500
+      res.end('internal server error')
+    }
   })
-  console.log('✅ Payload initialized successfully')
-} catch (error) {
-  console.error('❌ Failed to initialize Payload:', error)
-  process.exit(1)
-}
-
-// Basic health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
-})
-
-// Initialize Payload's Express middleware
-app.use(payload.express)
-
-// Start the server
-app.listen(PORT, HOST, () => {
-  console.log(`🚀 Server running on http://${HOST}:${PORT}`)
-  console.log(`📊 Admin panel: http://${HOST}:${PORT}/admin`)
-})
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, shutting down gracefully')
-  if (payload) {
-    await payload.db.destroy()
-  }
-  process.exit(0)
-})
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, shutting down gracefully')
-  if (payload) {
-    await payload.db.destroy()
-  }
-  process.exit(0)
+    .once('error', (err) => {
+      console.error(err)
+      process.exit(1)
+    })
+    .listen(port, hostname, () => {
+      console.log(`> Ready on http://${hostname}:${port}`)
+      console.log(`> Admin panel: http://${hostname}:${port}/admin`)
+    })
 })
