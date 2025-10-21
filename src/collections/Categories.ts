@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+import { isAdmin } from "@/lib/access-helpers"
 
 const Categories: CollectionConfig = {
   slug: "categories",
@@ -8,18 +9,9 @@ const Categories: CollectionConfig = {
   },
   access: {
     read: () => true, // Public read access
-    create: ({ req }) => {
-      // Only admins can create categories
-      return req.user?.collection === "users"
-    },
-    update: ({ req }) => {
-      // Only admins can update categories
-      return req.user?.collection === "users"
-    },
-    delete: ({ req }) => {
-      // Only admins can delete categories
-      return req.user?.collection === "users"
-    },
+    create: isAdmin, // Only admins can create categories
+    update: isAdmin, // Only admins can update categories
+    delete: isAdmin, // Only admins can delete categories
   },
   fields: [
     {

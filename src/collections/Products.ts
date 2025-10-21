@@ -1,5 +1,6 @@
 import type { CollectionConfig } from "payload"
 import { slateEditor } from "@payloadcms/richtext-slate"
+import { isAdmin, isAdminOrVendor, ownRecord } from "@/lib/access-helpers"
 
 const Products: CollectionConfig = {
   slug: "products",
@@ -8,10 +9,10 @@ const Products: CollectionConfig = {
   },
   access: {
     read: () => true, // Public read access
-    create: ({ req }) => !!req.user, // Only authenticated users can create
+    create: isAdminOrVendor, // Only admins and vendors can create
     update: ({ req }) => {
       // Admins can update any product, vendors can update their own
-      if (req.user?.collection === "users") return true
+      if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return { vendor: { equals: req.user.id } }
       }
@@ -19,7 +20,7 @@ const Products: CollectionConfig = {
     },
     delete: ({ req }) => {
       // Admins can delete any product, vendors can delete their own
-      if (req.user?.collection === "users") return true
+      if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return { vendor: { equals: req.user.id } }
       }

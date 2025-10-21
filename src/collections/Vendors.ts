@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+import { isAdmin, isAdminOrVendor, ownRecord } from "@/lib/access-helpers"
 
 const Vendors: CollectionConfig = {
   slug: "vendors",
@@ -226,17 +227,17 @@ const Vendors: CollectionConfig = {
     create: () => true, // Anyone can register as vendor
     read: ({ req }) => {
       // Users (admins) can see all, vendors can only see themselves
-      if (req.user?.collection === "users") return true
+      if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
-        return { id: { equals: req.user.id } }
+        return ownRecord({ req })
       }
       return false
     },
     update: ({ req }) => {
       // Users (admins) can update any vendor, vendors can update themselves (except status)
-      if (req.user?.collection === "users") return true
+      if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
-        return { id: { equals: req.user.id } }
+        return ownRecord({ req })
       }
       return false
     },

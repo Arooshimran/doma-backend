@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+import { isSuperAdmin, isAuthenticated, ownRecord } from "@/lib/access-helpers"
 
 const Users: CollectionConfig = {
   slug: "users",
@@ -35,13 +36,13 @@ const Users: CollectionConfig = {
     },
   ],
   access: {
-    create: ({ req }) => req.user?.role === "super-admin",
-    read: ({ req }) => !!req.user,
+    create: isSuperAdmin,
+    read: isAuthenticated,
     update: ({ req }) => {
-      if (req.user?.role === "super-admin") return true
-      return { id: { equals: req.user?.id } }
+      if (isSuperAdmin({ req })) return true
+      return ownRecord({ req })
     },
-    delete: ({ req }) => req.user?.role === "super-admin",
+    delete: isSuperAdmin,
   },
 }
 

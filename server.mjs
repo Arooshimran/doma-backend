@@ -1,30 +1,44 @@
 import { createServer } from 'http'
 import { parse } from 'url'
 import next from 'next'
+import express from 'express'
+import payload from 'payload'
+import dotenv from 'dotenv'
+
+dotenv.config()
 
 const dev = process.env.NODE_ENV !== 'production'
 const hostname = '0.0.0.0'
 const port = parseInt(process.env.PORT || '3000', 10)
 
-// when using middleware `hostname` and `port` must be provided below
 const app = next({ dev, hostname, port })
 const handle = app.getRequestHandler()
 
-app.prepare().then(() => {
-  createServer(async (req, res) => {
-    try {
-      // Be sure to pass `true` as the second argument to `url.parse`.
-      // This tells it to parse the query portion of the URL.
-      const parsedUrl = parse(req.url, true)
-      const { pathname, query } = parsedUrl
+app.prepare().then(async () => {
+  const expressApp = express()
 
-      await handle(req, res, parsedUrl)
-    } catch (err) {
-      console.error('Error occurred handling', req.url, err)
-      res.statusCode = 500
-      res.end('internal server error')
-    }
+  // Initialize Payload
+  await payload.init({
+    secret: process.env.PAYLOAD_SECRET,
+    mongoURL: process.env.DATABASE_URI,
+    express: expressApp,
+    onInit: () => {
+      console.log(`Payload Admin URL: ${payload.getAdminURL()}`)
+    },
   })
+
+  // Optional debug route to check req.user
+  expressApp.get('/debug-user', (req, res) => {
+    res.json({ user: req.user ?? null })
+  })
+
+  // Let Next.js handle all other requests
+  expressApp.all('*', async (req, res) => {
+    const parsedUrl = parse(req.url, true)
+    await handle(req, res, parsedUrl)
+  })
+
+  createServer(expressApp)
     .once('error', (err) => {
       console.error(err)
       process.exit(1)

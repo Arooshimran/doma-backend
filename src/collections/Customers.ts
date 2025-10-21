@@ -1,4 +1,5 @@
 import type { CollectionConfig } from "payload"
+import { isAuthenticated } from "@/lib/access-helpers"
 
 const Customers: CollectionConfig = {
   slug: "customers",
@@ -9,9 +10,9 @@ const Customers: CollectionConfig = {
   
    access: {
     create: () => true,  // Allow public creation — only for registration or OAuth sync
-    read: ({ req: { user } }) => !!user,  // only logged-in users can read
-    update: ({ req: { user } }) => !!user,
-    delete: ({ req: { user } }) => false,
+    read: isAuthenticated,  // only logged-in users can read
+    update: isAuthenticated,
+    delete: () => false, // No one can delete customers
   },
   fields: [
     {

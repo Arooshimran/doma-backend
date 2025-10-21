@@ -1,23 +1,15 @@
 import type { CollectionConfig } from 'payload'
 import path from 'path'
 import cloudinary from '@/lib/cloudinary'
+import { isAdmin, isAdminOrVendor } from '@/lib/access-helpers'
 
 const Media: CollectionConfig = {
   slug: 'media',
   access: {
     read: () => true, // Public read access for media
-    create: ({ req }) => {
-      // Admins and vendors can create media
-      return req.user?.collection === "users" || req.user?.collection === "vendors"
-    },
-    update: ({ req }) => {
-      // Admins and vendors can update media
-      return req.user?.collection === "users" || req.user?.collection === "vendors"
-    },
-    delete: ({ req }) => {
-      // Only admins can delete media
-      return req.user?.collection === "users"
-    },
+    create: isAdminOrVendor, // Admins and vendors can create media
+    update: isAdminOrVendor, // Admins and vendors can update media
+    delete: isAdmin, // Only admins can delete media
   },
   fields: [
     {
