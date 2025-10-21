@@ -28,6 +28,14 @@ const Media: CollectionConfig = {
   ],
   upload: true,
   hooks: {
+    afterRead: [
+      ({ doc }) => {
+        if ((doc as any)?.cloudinaryUrl) {
+          (doc as any).url = (doc as any).cloudinaryUrl
+        }
+        return doc
+      },
+    ],
     afterChange: [
       async ({ doc, req, operation }) => {
         if (req?.context && (req.context as any).skipCloudinarySync) return doc
@@ -37,24 +45,37 @@ const Media: CollectionConfig = {
         if ((doc as any)?.cloudinaryPublicId) return doc
 
         try {
-          // Try to read from local file first (for dev), fallback to buffer upload
-          const filePath = path.join(process.cwd(), 'media', filename)
-          let result: any
-
-          try {
-            // Try local file first
-            result = await cloudinary.uploader.upload(filePath, {
-              resource_type: 'auto',
-              folder: 'doma',
+          // Prefer streaming uploaded buffer when available (prod/serverless)
+          const fileFromReq: any = (req as any)?.file
+          if (fileFromReq?.buffer && fileFromReq?.mimetype) {
+            const result: any = await new Promise((resolve, reject) => {
+              const upload = cloudinary.uploader.upload_stream(
+                { resource_type: 'auto', folder: 'doma' },
+                (error, res) => (error ? reject(error) : resolve(res)),
+              )
+              upload.end(fileFromReq.buffer)
             })
-          } catch (fileError: any) {
-            // If local file doesn't exist (serverless), skip Cloudinary sync
-            if (fileError?.message?.includes('ENOENT') || fileError?.code === 'ENOENT') {
-              req.payload.logger?.warn?.('Cloudinary sync skipped (no local file in serverless)')
-              return doc
-            }
-            throw fileError
+
+            const updated = await req.payload.update({
+              collection: 'media',
+              id: doc.id,
+              data: {
+                cloudinaryPublicId: result.public_id,
+                cloudinaryUrl: result.secure_url,
+              },
+              overrideAccess: true,
+              depth: 0,
+              context: { skipCloudinarySync: true },
+            })
+            return updated
           }
+
+          // Fallback: local file (dev environments)
+          const filePath = path.join(process.cwd(), 'media', filename)
+          const result = await cloudinary.uploader.upload(filePath, {
+            resource_type: 'auto',
+            folder: 'doma',
+          })
 
           const updated = await req.payload.update({
             collection: 'media',
@@ -70,7 +91,12 @@ const Media: CollectionConfig = {
 
           return updated
         } catch (e: any) {
-          req.payload.logger?.warn?.(`Cloudinary sync failed: ${e?.message || String(e)}`)
+          const message = e?.message || String(e)
+          if (message.includes('ENOENT')) {
+            req.payload.logger?.warn?.('Cloudinary sync skipped (no local file in serverless)')
+            return doc
+          }
+          req.payload.logger?.warn?.(`Cloudinary sync failed: ${message}`)
           return doc
         }
       },
