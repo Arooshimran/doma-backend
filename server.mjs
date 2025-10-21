@@ -4,6 +4,7 @@ import next from 'next'
 import express from 'express'
 import payload from 'payload'
 import dotenv from 'dotenv'
+import payloadConfig from './payload.config.js' // <-- import your Payload config
 
 dotenv.config()
 
@@ -17,8 +18,9 @@ const handle = app.getRequestHandler()
 app.prepare().then(async () => {
   const expressApp = express()
 
-  // Initialize Payload
+  // Initialize Payload with config
   await payload.init({
+    ...payloadConfig,  // <-- this is required
     secret: process.env.PAYLOAD_SECRET,
     mongoURL: process.env.DATABASE_URI,
     express: expressApp,
@@ -27,7 +29,7 @@ app.prepare().then(async () => {
     },
   })
 
-  // Optional debug route to check req.user
+  // Debug route to check req.user
   expressApp.get('/debug-user', (req, res) => {
     res.json({ user: req.user ?? null })
   })
