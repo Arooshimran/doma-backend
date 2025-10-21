@@ -5,10 +5,17 @@ import cloudinary from '@/lib/cloudinary'
 const Media: CollectionConfig = {
   slug: 'media',
   access: {
-    read: () => true,
-    create: () => true,
-    update: () => true,
-    delete: () => true,
+    read: () => true, // Public read access for media
+    create: ({ req }) => !!req.user, // Only authenticated users can upload
+    update: ({ req }) => {
+      // Admins can update any media, users can update their own
+      if (req.user?.collection === "users") return true
+      return false // For now, only admins can update media
+    },
+    delete: ({ req }) => {
+      // Only admins can delete media
+      return req.user?.collection === "users"
+    },
   },
   fields: [
     {
@@ -28,7 +35,9 @@ const Media: CollectionConfig = {
       admin: { description: 'Optional reference only' },
     },
   ],
-  upload: true,
+  upload: {
+    disableLocalStorage: true,
+  },
   hooks: {
     afterRead: [
       ({ doc }) => {

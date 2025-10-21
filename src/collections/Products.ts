@@ -7,11 +7,24 @@ const Products: CollectionConfig = {
     useAsTitle: "title",
   },
   access: {
-    read: () => true,
-    update: () => true,
-    delete: ({ req: { user } }) =>
-      user ? { vendor: { equals: user.id } } : false,
-    create: () => true,
+    read: () => true, // Public read access
+    create: ({ req }) => !!req.user, // Only authenticated users can create
+    update: ({ req }) => {
+      // Admins can update any product, vendors can update their own
+      if (req.user?.collection === "users") return true
+      if (req.user?.collection === "vendors") {
+        return { vendor: { equals: req.user.id } }
+      }
+      return false
+    },
+    delete: ({ req }) => {
+      // Admins can delete any product, vendors can delete their own
+      if (req.user?.collection === "users") return true
+      if (req.user?.collection === "vendors") {
+        return { vendor: { equals: req.user.id } }
+      }
+      return false
+    },
   },
   fields: [
     // Product Info
