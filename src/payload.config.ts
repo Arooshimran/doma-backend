@@ -104,22 +104,24 @@ export default buildConfig({
     // storage-adapter-placeholder
   ],
 
-cors: {
-  origin: [
-    'http://localhost:3000', 
-    'http://localhost:3001' 
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-},
+  // Derive allowed origins from env for prod safety; fallback to local dev
+  cors: {
+    origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001')
+      .split(',')
+      .map((o) => o.trim())
+      .filter(Boolean),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  },
 
-csrf: [
-  "http://localhost:3000", 
-  "http://localhost:3001",
-],
+  csrf: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean),
+
   cookies: {
-    secure: false,
+    secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   },
 } as any)
