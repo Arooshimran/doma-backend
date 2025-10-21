@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayloadClient } from '@/lib/payload-client'
+// Restored to use Payload built-in upload handling
 
 export const config = { api: { bodyParser: false } }
 
@@ -23,7 +24,7 @@ export async function POST(request: NextRequest) {
         size: file.size,
       },
     })
-    return NextResponse.json({ success: true, id: result.id, url: result.url })
+    return NextResponse.json({ success: true, id: result.id, url: (result as any).url })
   } catch (err) {
     console.error(err)
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })

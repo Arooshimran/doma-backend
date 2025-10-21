@@ -95,13 +95,19 @@ export default buildConfig({
 
   plugins: [
     payloadCloudPlugin(),
+    // cloudinaryPlugin({
+    //   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    //   api_key: process.env.CLOUDINARY_API_KEY,
+    //   api_secret: process.env.CLOUDINARY_API_SECRET,
+    //   // plugin options: folder, public_id rules, etc.
+    // })
     // storage-adapter-placeholder
   ],
 
 cors: {
   origin: [
-    'http://localhost:3000', // Add this - Payload admin panel
-    'http://localhost:3001'  // Your existing frontend
+    'http://localhost:3000', 
+    'http://localhost:3001' 
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -109,7 +115,7 @@ cors: {
 },
 
 csrf: [
-  "http://localhost:3000", // Add this
+  "http://localhost:3000", 
   "http://localhost:3001",
 ],
   cookies: {

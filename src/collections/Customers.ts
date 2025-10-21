@@ -2,7 +2,7 @@ import type { CollectionConfig } from "payload"
 
 const Customers: CollectionConfig = {
   slug: "customers",
-  auth: false, // ✅ Enable Payload's built-in auth
+  auth: false, 
   admin: {
     useAsTitle: "email",
   },

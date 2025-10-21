@@ -123,8 +123,8 @@ export async function POST(request: NextRequest) {
     console.log("📤 Uploading file:", fileName)
 
     try {
-      // Upload to Payload media collection
-      const uploadResult = await payload.create({
+      // Upload to Payload Media collection
+      const mediaDoc = await payload.create({
         collection: 'media',
         data: {
           alt: `Store logo for vendor ${vendorId}`,
@@ -140,20 +140,19 @@ export async function POST(request: NextRequest) {
       })
       
       console.log("✅ File uploaded successfully:", {
-        id: uploadResult.id,
-        url: uploadResult.url,
-        filename: uploadResult.filename
+        id: mediaDoc.id,
+        url: (mediaDoc as any).url,
       })
 
       return NextResponse.json({
         success: true,
         message: 'Logo uploaded successfully',
         media: {
-          id: uploadResult.id,
-          url: uploadResult.url,
-          alt: uploadResult.alt,
-          filename: uploadResult.filename,
-        }
+          id: mediaDoc.id,
+          url: (mediaDoc as any).url,
+          alt: (mediaDoc as any).alt,
+          filename: (mediaDoc as any).filename,
+        },
       }, { status: 201, headers: getCorsHeaders() })
       
     } catch (uploadError) {

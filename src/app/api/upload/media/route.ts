@@ -79,17 +79,16 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Convert file to buffer
+      // Convert file to buffer and upload to Payload Media collection
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
 
       console.log("📤 Uploading to Payload...")
 
-      // Upload to Payload Media collection
       const uploadedMedia = await payload.create({
         collection: 'media',
         data: {
-          alt: alt || file.name.split('.')[0], // Use filename without extension as default alt
+          alt: alt || file.name.split('.')[0],
         },
         file: {
           data: buffer,
@@ -97,26 +96,26 @@ export async function POST(request: NextRequest) {
           size: file.size,
           mimetype: file.type,
         },
-        overrideAccess: true, // Bypass access control for API operations
+        overrideAccess: true,
       })
 
       console.log("✅ Media uploaded successfully:", {
         id: uploadedMedia.id,
-        filename: uploadedMedia.filename,
-        url: uploadedMedia.url
+        filename: (uploadedMedia as any).filename,
+        url: (uploadedMedia as any).url
       })
 
       return NextResponse.json({
         success: true,
         media: {
           id: uploadedMedia.id,
-          url: uploadedMedia.url,
-          filename: uploadedMedia.filename,
-          alt: uploadedMedia.alt,
-          mimeType: uploadedMedia.mimeType,
-          filesize: uploadedMedia.filesize,
-          width: uploadedMedia.width,
-          height: uploadedMedia.height,
+          url: (uploadedMedia as any).url,
+          filename: (uploadedMedia as any).filename,
+          alt: (uploadedMedia as any).alt,
+          mimeType: (uploadedMedia as any).mimeType,
+          filesize: (uploadedMedia as any).filesize,
+          width: (uploadedMedia as any).width,
+          height: (uploadedMedia as any).height,
         },
         message: 'File uploaded successfully'
       }, { headers: getCorsHeaders() })

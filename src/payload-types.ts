@@ -244,6 +244,14 @@ export interface Category {
 export interface Media {
   id: string;
   alt: string;
+  /**
+   * Optional reference only
+   */
+  cloudinaryPublicId?: string | null;
+  /**
+   * Optional reference only
+   */
+  cloudinaryUrl?: string | null;
   updatedAt: string;
   createdAt: string;
   url?: string | null;
@@ -744,6 +752,8 @@ export interface VendorsSelect<T extends boolean = true> {
  */
 export interface MediaSelect<T extends boolean = true> {
   alt?: T;
+  cloudinaryPublicId?: T;
+  cloudinaryUrl?: T;
   updatedAt?: T;
   createdAt?: T;
   url?: T;
