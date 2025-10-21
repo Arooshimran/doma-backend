@@ -28,6 +28,14 @@ const Media: CollectionConfig = {
   ],
   upload: true,
   hooks: {
+    afterRead: [
+      ({ doc }) => {
+        if ((doc as any)?.cloudinaryUrl) {
+          (doc as any).url = (doc as any).cloudinaryUrl
+        }
+        return doc
+      },
+    ],
     afterChange: [
       async ({ doc, req, operation }) => {
         if (req?.context && (req.context as any).skipCloudinarySync) return doc
@@ -36,12 +44,25 @@ const Media: CollectionConfig = {
         if (!filename) return doc
         if ((doc as any)?.cloudinaryPublicId) return doc
 
-        const filePath = path.join(process.cwd(), 'media', filename)
         try {
-          const result = await cloudinary.uploader.upload(filePath, {
-            resource_type: 'auto',
-            folder: 'doma',
-          })
+          // Try to read from local file first (for dev), fallback to buffer upload
+          const filePath = path.join(process.cwd(), 'media', filename)
+          let result: any
+
+          try {
+            // Try local file first
+            result = await cloudinary.uploader.upload(filePath, {
+              resource_type: 'auto',
+              folder: 'doma',
+            })
+          } catch (fileError: any) {
+            // If local file doesn't exist (serverless), skip Cloudinary sync
+            if (fileError?.message?.includes('ENOENT') || fileError?.code === 'ENOENT') {
+              req.payload.logger?.warn?.('Cloudinary sync skipped (no local file in serverless)')
+              return doc
+            }
+            throw fileError
+          }
 
           const updated = await req.payload.update({
             collection: 'media',
@@ -57,13 +78,7 @@ const Media: CollectionConfig = {
 
           return updated
         } catch (e: any) {
-          // If file not found (race), skip noisy error and keep Payload asset
-          const message = e?.message || String(e)
-          if (message && message.includes('ENOENT')) {
-            req.payload.logger?.warn?.('Cloudinary sync skipped (file not found yet)')
-            return doc
-          }
-          req.payload.logger?.error?.(`Cloudinary sync failed: ${message}`)
+          req.payload.logger?.warn?.(`Cloudinary sync failed: ${e?.message || String(e)}`)
           return doc
         }
       },
