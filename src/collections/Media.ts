@@ -6,11 +6,13 @@ const Media: CollectionConfig = {
   slug: 'media',
   access: {
     read: () => true, // Public read access for media
-    create: ({ req }) => !!req.user, // Only authenticated users can upload
+    create: ({ req }) => {
+      // Admins and vendors can create media
+      return req.user?.collection === "users" || req.user?.collection === "vendors"
+    },
     update: ({ req }) => {
-      // Admins can update any media, users can update their own
-      if (req.user?.collection === "users") return true
-      return false // For now, only admins can update media
+      // Admins and vendors can update media
+      return req.user?.collection === "users" || req.user?.collection === "vendors"
     },
     delete: ({ req }) => {
       // Only admins can delete media
@@ -56,38 +58,10 @@ const Media: CollectionConfig = {
         if ((doc as any)?.cloudinaryPublicId) return doc
 
         try {
-          // Try to read from local file first (for dev), fallback to buffer upload
-          const filePath = path.join(process.cwd(), 'media', filename)
-          let result: any
-
-          try {
-            // Try local file first
-            result = await cloudinary.uploader.upload(filePath, {
-              resource_type: 'auto',
-              folder: 'doma',
-            })
-          } catch (fileError: any) {
-            // If local file doesn't exist (serverless), skip Cloudinary sync
-            if (fileError?.message?.includes('ENOENT') || fileError?.code === 'ENOENT') {
-              req.payload.logger?.warn?.('Cloudinary sync skipped (no local file in serverless)')
-              return doc
-            }
-            throw fileError
-          }
-
-          const updated = await req.payload.update({
-            collection: 'media',
-            id: doc.id,
-            data: {
-              cloudinaryPublicId: result.public_id,
-              cloudinaryUrl: result.secure_url,
-            },
-            overrideAccess: true,
-            depth: 0,
-            context: { skipCloudinarySync: true },
-          })
-
-          return updated
+          // In serverless environments, we can't access local files
+          // Skip Cloudinary sync for now since we're using disableLocalStorage
+          req.payload.logger?.warn?.('Cloudinary sync skipped (serverless environment with disableLocalStorage)')
+          return doc
         } catch (e: any) {
           req.payload.logger?.warn?.(`Cloudinary sync failed: ${e?.message || String(e)}`)
           return doc

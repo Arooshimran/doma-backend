@@ -7,10 +7,19 @@ const Categories: CollectionConfig = {
     defaultColumns: ["name", "slug", "isActive", "sortOrder"],
   },
   access: {
-    read: () => true,
-    create: ({ req: { user } }) => !!user,
-    update: ({ req: { user } }) => !!user,
-    delete: ({ req: { user } }) => !!user,
+    read: () => true, // Public read access
+    create: ({ req }) => {
+      // Only admins can create categories
+      return req.user?.collection === "users"
+    },
+    update: ({ req }) => {
+      // Only admins can update categories
+      return req.user?.collection === "users"
+    },
+    delete: ({ req }) => {
+      // Only admins can delete categories
+      return req.user?.collection === "users"
+    },
   },
   fields: [
     {

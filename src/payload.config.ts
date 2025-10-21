@@ -42,6 +42,10 @@ export default buildConfig({
             user: process.env.SMTP_USER,
             pass: process.env.SMTP_PASS,
           },
+          // Add timeout and connection settings to prevent hanging
+          connectionTimeout: 10000, // 10 seconds
+          greetingTimeout: 10000,   // 10 seconds
+          socketTimeout: 10000,     // 10 seconds
         }),
         defaultFromAddress: process.env.SMTP_USER,
         defaultFromName: 'DOMA',
