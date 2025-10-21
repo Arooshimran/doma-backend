@@ -25,14 +25,6 @@ import Vendors from './collections/Vendors'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-const transport = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.SMTP_USER!,
-    pass: process.env.SMTP_PASS!,
-  },
-});
-
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -41,31 +33,24 @@ export default buildConfig({
     },
   },
 
-    email: nodemailerAdapter({
-    transport,
-    defaultFromAddress: process.env.SMTP_USER!,
-    defaultFromName: "DOMA",
-  }),
+    // Email configuration - completely optional to prevent build failures
+    ...(process.env.SMTP_USER && process.env.SMTP_PASS ? {
+      email: nodemailerAdapter({
+        transport: nodemailer.createTransport({
+          service: 'gmail',
+          auth: {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          },
+        }),
+        defaultFromAddress: process.env.SMTP_USER,
+        defaultFromName: 'DOMA',
+      }),
+    } : {}),
 
-  // Optional: keep your custom Google endpoint if you want manual control
-  // endpoints: [
-  //   {
-  //     path: "/api/customers/google",
-  //     method: "post",
-  //     handler: googleAuthHandler, // your manual Google OAuth callback handler
-  //   },
-  // ],
-
-  // Add the built-in auth config here:
+  // Auth configuration - using Users collection for admin login only
   auth: {
-    collection: Users.slug, // or Customers.slug if Customers collection handles auth
-    providers: [
-      {
-        provider: 'google',
-        clientID: process.env.GOOGLE_CLIENT_ID || '',
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
-      },
-    ],
+    collection: Users.slug,
   },
 
   collections: [
