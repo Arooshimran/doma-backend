@@ -91,7 +91,8 @@ export default buildConfig({
 
   // Derive allowed origins from env for prod safety; fallback to local dev
   cors: {
-    origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001')
+    origin: (process.env.ALLOWED_ORIGINS ||
+      'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),
@@ -99,14 +100,17 @@ export default buildConfig({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   },
-
-  csrf: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001')
+  
+  csrf: (process.env.ALLOWED_ORIGINS ||
+    'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
-
+  
   cookies: {
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
+  
+    
 } as any)
