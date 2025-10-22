@@ -4,7 +4,7 @@ import next from 'next'
 import express from 'express'
 import payload from 'payload'
 import dotenv from 'dotenv'
-import payloadConfig from './src/payload.config'
+import payloadConfig from './payload.config'
 
 dotenv.config()
 
