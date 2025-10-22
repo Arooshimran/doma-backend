@@ -4,7 +4,7 @@ import next from 'next'
 import express from 'express'
 import payload from 'payload'
 import dotenv from 'dotenv'
-import payloadConfig from './payload.config.js' // <-- import your Payload config
+import { pathToFileURL } from 'url'
 
 dotenv.config()
 
@@ -18,9 +18,13 @@ const handle = app.getRequestHandler()
 app.prepare().then(async () => {
   const expressApp = express()
 
+  // Dynamic import of TypeScript config (Next.js will handle the compilation)
+  const configPath = pathToFileURL('./src/payload.config.ts').href
+  const { default: payloadConfig } = await import(configPath)
+
   // Initialize Payload with config
   await payload.init({
-    ...payloadConfig,  // <-- this is required
+    ...payloadConfig,
     secret: process.env.PAYLOAD_SECRET,
     mongoURL: process.env.DATABASE_URI,
     express: expressApp,
