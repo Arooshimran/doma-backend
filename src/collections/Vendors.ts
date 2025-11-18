@@ -156,11 +156,9 @@ const Vendors: CollectionConfig = {
       ],
     },
     {
-      name: "businessInfo",
+      name: "businessType",
       type: "group",
       fields: [
-        { name: "businessLicense", type: "text" },
-        { name: "taxId", type: "text" },
         { name: "businessType", type: "select", options: [
           { label: "Individual", value: "individual" }, 
           { label: "Company", value: "company" }, 
@@ -169,23 +167,7 @@ const Vendors: CollectionConfig = {
       ],
     },
     // ✅ Enhanced approval/rejection tracking
-    {
-      name: "approvedBy",
-      type: "relationship",
-      relationTo: "users",
-      admin: {
-        readOnly: true,
-        condition: (data) => data.status === "approved",
-      },
-    },
-    {
-      name: "approvedAt",
-      type: "date",
-      admin: {
-        readOnly: true,
-        condition: (data) => data.status === "approved",
-      },
-    },
+   
     {
       name: "approvalNote",
       type: "textarea",
@@ -194,23 +176,8 @@ const Vendors: CollectionConfig = {
         condition: (data) => data.status === "approved",
       },
     },
-    {
-      name: "rejectedBy",
-      type: "relationship",
-      relationTo: "users",
-      admin: {
-        readOnly: true,
-        condition: (data) => data.status === "rejected",
-      },
-    },
-    {
-      name: "rejectedAt",
-      type: "date",
-      admin: {
-        readOnly: true,
-        condition: (data) => data.status === "rejected",
-      },
-    },
+   
+    
     {
       name: "rejectionReason",
       type: "textarea",

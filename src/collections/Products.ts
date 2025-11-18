@@ -49,22 +49,22 @@ const Products: CollectionConfig = {
       },
     },
     {
-      name: "shortDescription",
+      name: "Description",
       label: "Short Description",
       type: "textarea",
       admin: {
         description: "A brief summary of the product.",
       },
     },
-    {
-      name: "description",
-      label: "Full Description",
-      type: "richText",
-      editor: slateEditor({}),
-      admin: {
-        description: "Detailed product description.",
-      },
-    },
+    // {
+    //   name: "description",
+    //   label: "Full Description",
+    //   type: "richText",
+    //   editor: slateEditor({}),
+    //   admin: {
+    //     description: "Detailed product description.",
+    //   },
+    // },
 
     // Pricing
     {
@@ -74,29 +74,29 @@ const Products: CollectionConfig = {
       fields: [
         {
           name: "price",
-          label: "Selling Price",
+          label: "Original Price",
           type: "number",
           required: true,
           min: 0,
         },
         {
-          name: "comparePrice",
-          label: "Original Price (optional)",
+          name: "discountedPrice",
+          label: "Discounted Price (optional)",
           type: "number",
           min: 0,
           admin: {
             description: "Show discount by adding original price (e.g., 500 crossed out).",
           },
         },
-        {
-          name: "cost",
-          label: "Cost Price (private)",
-          type: "number",
-          min: 0,
-          admin: {
-            description: "Only visible to admins. Not shown to customers.",
-          },
-        },
+        // {
+        //   name: "cost",
+        //   label: "Cost Price (private)",
+        //   type: "number",
+        //   min: 0,
+        //   admin: {
+        //     description: "Only visible to admins. Not shown to customers.",
+        //   },
+        // },
       ],
     },
 
@@ -106,12 +106,12 @@ const Products: CollectionConfig = {
       name: "inventory",
       label: "Inventory",
       fields: [
-        {
-          name: "trackQuantity",
-          label: "Track Stock?",
-          type: "checkbox",
-          defaultValue: true,
-        },
+        // {
+        //   name: "trackQuantity",
+        //   label: "Track Stock?",
+        //   type: "checkbox",
+        //   defaultValue: true,
+        // },
         {
           name: "quantity",
           label: "Available Quantity",
@@ -170,17 +170,17 @@ const Products: CollectionConfig = {
       },
     },
 
-    {
-      name: "tags",
-      label: "Tags (optional)",
-      type: "array",
-      fields: [
-        {
-          name: "tag",
-          type: "text",
-        },
-      ],
-    },
+    // {
+    //   name: "tags",
+    //   label: "Tags (optional)",
+    //   type: "array",
+    //   fields: [
+    //     {
+    //       name: "tag",
+    //       type: "text",
+    //     },
+    //   ],
+    // },
 
     {
       name: "specifications",
@@ -192,22 +192,22 @@ const Products: CollectionConfig = {
       ],
     },
 
-    {
-      name: "dimensions",
-      label: "Dimensions",
-      type: "group",
-      fields: [
-        { name: "length", type: "number" },
-        { name: "width", type: "number" },
-        { name: "height", type: "number" },
-        { name: "weight", type: "number" },
-        {
-          name: "unit",
-          type: "select",
-          options: ["cm", "inch", "mm"],
-        },
-      ],
-    },
+    // {
+    //   name: "dimensions",
+    //   label: "Dimensions",
+    //   type: "group",
+    //   fields: [
+    //     { name: "length", type: "number" },
+    //     { name: "width", type: "number" },
+    //     { name: "height", type: "number" },
+    //     { name: "weight", type: "number" },
+    //     {
+    //       name: "unit",
+    //       type: "select",
+    //       options: ["cm", "inch", "mm"],
+    //     },
+    //   ],
+    // },
 
     // Visibility & Status
     {
@@ -232,19 +232,19 @@ const Products: CollectionConfig = {
     },
 
     // SEO (Hidden by default or for advanced users)
-    {
-      name: "seo",
-      label: "Search Engine Optimization (SEO)",
-      type: "group",
-      fields: [
-        { name: "metaTitle", type: "text" },
-        { name: "metaDescription", type: "textarea" },
-        { name: "keywords", type: "text" },
-      ],
-      admin: {
-        condition: () => false, // hide unless you want vendors to edit SEO
-      },
-    },
+    // {
+    //   name: "seo",
+    //   label: "Search Engine Optimization (SEO)",
+    //   type: "group",
+    //   fields: [
+    //     { name: "metaTitle", type: "text" },
+    //     { name: "metaDescription", type: "textarea" },
+    //     { name: "keywords", type: "text" },
+    //   ],
+    //   admin: {
+    //     condition: () => false, // hide unless you want vendors to edit SEO
+    //   },
+    // },
 
     // Hidden Vendor ID - set automatically
     {
@@ -264,15 +264,15 @@ const Products: CollectionConfig = {
       },
     },
 
-    {
-      name: "sku",
-      label: "SKU Code (optional)",
-      type: "text",
-      unique: true,
-      admin: {
-        description: "Stock Keeping Unit - useful if you track SKUs.",
-      },
-    },
+    // {
+    //   name: "sku",
+    //   label: "SKU Code (optional)",
+    //   type: "text",
+    //   unique: true,
+    //   admin: {
+    //     description: "Stock Keeping Unit - useful if you track SKUs.",
+    //   },
+    // },
     {
   name: "size",
   type: "select",

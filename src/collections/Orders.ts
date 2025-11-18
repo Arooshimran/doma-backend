@@ -82,7 +82,6 @@ const Orders: CollectionConfig = {
         { name: "street", type: "text", required: true },
         { name: "city", type: "text", required: true },
         { name: "state", type: "text" },
-        { name: "zipCode", type: "text", required: true },
         { name: "country", type: "text", required: true },
         { name: "phone", type: "text" },
       ],
@@ -96,7 +95,6 @@ const Orders: CollectionConfig = {
         { name: "street", type: "text" },
         { name: "city", type: "text" },
         { name: "state", type: "text" },
-        { name: "zipCode", type: "text" },
         { name: "country", type: "text" },
       ],
     },
@@ -114,21 +112,14 @@ const Orders: CollectionConfig = {
     {
       name: "paymentStatus",
       type: "select",
-      options: ["pending", "paid", "failed", "refunded"],
+      options: ["pending", "paid", "failed"],
       defaultValue: "pending",
     },
     {
       name: "paymentMethod",
       type: "text",
     },
-    {
-      name: "notes",
-      type: "textarea",
-    },
-    {
-      name: "trackingNumber",
-      type: "text",
-    },
+
   ],
 }
 

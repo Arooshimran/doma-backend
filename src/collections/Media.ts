@@ -30,7 +30,9 @@ const Media: CollectionConfig = {
     },
   ],
   upload: {
-    disableLocalStorage: true,
+    // Default to false in development so local file serving works.
+    // Set `DISABLE_LOCAL_STORAGE=true` in production (Render/Vercel) to disable local writes.
+    disableLocalStorage: process.env.DISABLE_LOCAL_STORAGE === 'true',
   },
   hooks: {
     afterRead: [
@@ -41,25 +43,70 @@ const Media: CollectionConfig = {
         return doc
       },
     ],
-    afterChange: [
-      async ({ doc, req, operation }) => {
-        if (req?.context && (req.context as any).skipCloudinarySync) return doc
-        if (operation !== 'create' && operation !== 'update') return doc
-        const filename = (doc as any)?.filename
-        if (!filename) return doc
-        if ((doc as any)?.cloudinaryPublicId) return doc
+  afterChange: [
+  async ({ doc, req, operation }) => {
+    if (operation !== 'create' && operation !== 'update') return doc
+    if (doc.cloudinaryPublicId) return doc
 
-        try {
-          // In serverless environments, we can't access local files
-          // Skip Cloudinary sync for now since we're using disableLocalStorage
-          req.payload.logger?.warn?.('Cloudinary sync skipped (serverless environment with disableLocalStorage)')
-          return doc
-        } catch (e: any) {
-          req.payload.logger?.warn?.(`Cloudinary sync failed: ${e?.message || String(e)}`)
-          return doc
-        }
-      },
-    ],
+    // Payload stores uploaded file here:
+    const file = req.file
+    if (!file || !file.data) {
+      req.payload.logger?.warn?.('No file data found — Cloudinary upload skipped')
+      return doc
+    }
+
+    try {
+      const uploadToCloudinary = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            {
+              folder: process.env.CLOUDINARY_FOLDER || undefined,
+              use_filename: true,
+              unique_filename: false,
+            },
+            (error, result) => {
+              if (error) reject(error)
+              else resolve(result)
+            }
+          )
+
+          // file.data is the Buffer
+          stream.end(file.data)
+        })
+
+      const result: any = await uploadToCloudinary()
+
+      req.payload.logger?.info?.(
+        `Cloudinary upload successful: ${JSON.stringify(result)}`
+      )
+
+      const publicId = result.public_id || null
+      const url = result.secure_url || result.url || null
+
+      if (publicId || url) {
+        await req.payload.update({
+          collection: 'media',
+          id: doc.id,
+          data: {
+            cloudinaryPublicId: publicId,
+            cloudinaryUrl: url,
+          },
+        })
+
+        doc.cloudinaryPublicId = publicId
+        doc.cloudinaryUrl = url
+      }
+
+      return doc
+    } catch (err: any) {
+      req.payload.logger?.error?.(
+        `Cloudinary upload failed: ${err?.message || String(err)}`
+      )
+      return doc
+    }
+  },
+],
+
   },
 }
 export default Media

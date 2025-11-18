@@ -281,28 +281,15 @@ export interface Product {
   /**
    * A brief summary of the product.
    */
-  shortDescription?: string | null;
-  /**
-   * Detailed product description.
-   */
-  description?:
-    | {
-        [k: string]: unknown;
-      }[]
-    | null;
+  Description?: string | null;
   pricing: {
     price: number;
     /**
      * Show discount by adding original price (e.g., 500 crossed out).
      */
-    comparePrice?: number | null;
-    /**
-     * Only visible to admins. Not shown to customers.
-     */
-    cost?: number | null;
+    discountedPrice?: number | null;
   };
   inventory?: {
-    trackQuantity?: boolean | null;
     quantity?: number | null;
     lowStockThreshold?: number | null;
   };
@@ -321,12 +308,6 @@ export interface Product {
    * Choose the most relevant category.
    */
   category?: (string | null) | Category;
-  tags?:
-    | {
-        tag?: string | null;
-        id?: string | null;
-      }[]
-    | null;
   specifications?:
     | {
         name: string;
@@ -334,25 +315,9 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
-  dimensions?: {
-    length?: number | null;
-    width?: number | null;
-    height?: number | null;
-    weight?: number | null;
-    unit?: ('cm' | 'inch' | 'mm') | null;
-  };
   status?: ('draft' | 'published' | 'pending' | 'rejected' | 'out-of-stock') | null;
   featured?: boolean | null;
-  seo?: {
-    metaTitle?: string | null;
-    metaDescription?: string | null;
-    keywords?: string | null;
-  };
   vendor: string | Vendor;
-  /**
-   * Stock Keeping Unit - useful if you track SKUs.
-   */
-  sku?: string | null;
   size?: ('S' | 'M' | 'L' | 'XL') | null;
   colors?:
     | {
@@ -381,19 +346,13 @@ export interface Vendor {
     city?: string | null;
     country?: string | null;
   };
-  businessInfo?: {
-    businessLicense?: string | null;
-    taxId?: string | null;
+  businessType?: {
     businessType?: ('individual' | 'company' | 'partnership') | null;
   };
-  approvedBy?: (string | null) | User;
-  approvedAt?: string | null;
   /**
    * Optional note about the approval
    */
   approvalNote?: string | null;
-  rejectedBy?: (string | null) | User;
-  rejectedAt?: string | null;
   /**
    * Please provide a clear reason for rejection
    */
@@ -442,7 +401,6 @@ export interface Order {
     street: string;
     city: string;
     state?: string | null;
-    zipCode: string;
     country: string;
     phone?: string | null;
   };
@@ -452,7 +410,6 @@ export interface Order {
     street?: string | null;
     city?: string | null;
     state?: string | null;
-    zipCode?: string | null;
     country?: string | null;
   };
   totals: {
@@ -462,10 +419,8 @@ export interface Order {
     discount?: number | null;
     total: number;
   };
-  paymentStatus?: ('pending' | 'paid' | 'failed' | 'refunded') | null;
+  paymentStatus?: ('pending' | 'paid' | 'failed') | null;
   paymentMethod?: string | null;
-  notes?: string | null;
-  trackingNumber?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -629,19 +584,16 @@ export interface CategoriesSelect<T extends boolean = true> {
 export interface ProductsSelect<T extends boolean = true> {
   title?: T;
   slug?: T;
-  shortDescription?: T;
-  description?: T;
+  Description?: T;
   pricing?:
     | T
     | {
         price?: T;
-        comparePrice?: T;
-        cost?: T;
+        discountedPrice?: T;
       };
   inventory?:
     | T
     | {
-        trackQuantity?: T;
         quantity?: T;
         lowStockThreshold?: T;
       };
@@ -654,12 +606,6 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   threeDModel?: T;
   category?: T;
-  tags?:
-    | T
-    | {
-        tag?: T;
-        id?: T;
-      };
   specifications?:
     | T
     | {
@@ -667,26 +613,9 @@ export interface ProductsSelect<T extends boolean = true> {
         value?: T;
         id?: T;
       };
-  dimensions?:
-    | T
-    | {
-        length?: T;
-        width?: T;
-        height?: T;
-        weight?: T;
-        unit?: T;
-      };
   status?: T;
   featured?: T;
-  seo?:
-    | T
-    | {
-        metaTitle?: T;
-        metaDescription?: T;
-        keywords?: T;
-      };
   vendor?: T;
-  sku?: T;
   size?: T;
   colors?:
     | T
@@ -716,18 +645,12 @@ export interface VendorsSelect<T extends boolean = true> {
         city?: T;
         country?: T;
       };
-  businessInfo?:
+  businessType?:
     | T
     | {
-        businessLicense?: T;
-        taxId?: T;
         businessType?: T;
       };
-  approvedBy?: T;
-  approvedAt?: T;
   approvalNote?: T;
-  rejectedBy?: T;
-  rejectedAt?: T;
   rejectionReason?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -793,7 +716,6 @@ export interface OrdersSelect<T extends boolean = true> {
         street?: T;
         city?: T;
         state?: T;
-        zipCode?: T;
         country?: T;
         phone?: T;
       };
@@ -805,7 +727,6 @@ export interface OrdersSelect<T extends boolean = true> {
         street?: T;
         city?: T;
         state?: T;
-        zipCode?: T;
         country?: T;
       };
   totals?:
@@ -819,8 +740,6 @@ export interface OrdersSelect<T extends boolean = true> {
       };
   paymentStatus?: T;
   paymentMethod?: T;
-  notes?: T;
-  trackingNumber?: T;
   updatedAt?: T;
   createdAt?: T;
 }
