@@ -70,6 +70,7 @@ export interface Config {
   collections: {
     users: User;
     customers: Customer;
+    carts: Cart;
     categories: Category;
     products: Product;
     vendors: Vendor;
@@ -83,6 +84,7 @@ export interface Config {
   collectionsSelect: {
     users: UsersSelect<false> | UsersSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
+    carts: CartsSelect<false> | CartsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     vendors: VendorsSelect<false> | VendorsSelect<true>;
@@ -202,61 +204,24 @@ export interface Customer {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "categories".
+ * via the `definition` "carts".
  */
-export interface Category {
+export interface Cart {
   id: string;
-  /**
-   * The display name of the category
-   */
-  name: string;
-  /**
-   * URL-friendly version of the name
-   */
-  slug: string;
-  /**
-   * Brief description of the category
-   */
-  description?: string | null;
-  /**
-   * Category image/icon
-   */
-  image?: (string | null) | Media;
-  /**
-   * Parent category for creating hierarchical structure
-   */
-  parent?: (string | null) | Category;
-  /**
-   * Whether this category is active and should appear in dropdowns
-   */
-  isActive?: boolean | null;
-  /**
-   * Order in which categories should be displayed
-   */
-  sortOrder?: number | null;
+  userId: string | Customer;
+  items?:
+    | {
+        product: string | Product;
+        quantity: number;
+        unitPrice?: number | null;
+        lineTotal?: number | null;
+        id?: string | null;
+      }[]
+    | null;
+  subtotal?: number | null;
+  total?: number | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  cloudinaryPublicId?: string | null;
-  cloudinaryUrl?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -302,13 +267,6 @@ export interface Product {
    * Choose the most relevant category.
    */
   category?: (string | null) | Category;
-  specifications?:
-    | {
-        name: string;
-        value: string;
-        id?: string | null;
-      }[]
-    | null;
   status?: ('draft' | 'published' | 'pending' | 'rejected' | 'out-of-stock') | null;
   featured?: boolean | null;
   vendor: string | Vendor;
@@ -319,6 +277,64 @@ export interface Product {
         id?: string | null;
       }[]
     | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  alt: string;
+  cloudinaryPublicId?: string | null;
+  cloudinaryUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "categories".
+ */
+export interface Category {
+  id: string;
+  /**
+   * The display name of the category
+   */
+  name: string;
+  /**
+   * URL-friendly version of the name
+   */
+  slug: string;
+  /**
+   * Brief description of the category
+   */
+  description?: string | null;
+  /**
+   * Category image/icon
+   */
+  image?: (string | null) | Media;
+  /**
+   * Parent category for creating hierarchical structure
+   */
+  parent?: (string | null) | Category;
+  /**
+   * Whether this category is active and should appear in dropdowns
+   */
+  isActive?: boolean | null;
+  /**
+   * Order in which categories should be displayed
+   */
+  sortOrder?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -377,18 +393,13 @@ export interface Order {
   id: string;
   orderNumber: string;
   customer: string | Customer;
-  status?: ('pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded') | null;
-  items?:
-    | {
-        product: string | Product;
-        vendor: string | Vendor;
-        quantity: number;
-        price: number;
-        total: number;
-        status?: ('pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled') | null;
-        id?: string | null;
-      }[]
-    | null;
+  orderStatus: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  paymentStatus?: ('pending' | 'paid' | 'failed') | null;
+  paymentMethod?: string | null;
+  /**
+   * Gateway transaction ID or reference
+   */
+  paymentId?: string | null;
   shippingAddress: {
     firstName: string;
     lastName: string;
@@ -398,6 +409,9 @@ export interface Order {
     country: string;
     phone?: string | null;
   };
+  /**
+   * Optional - defaults to shipping address
+   */
   billingAddress?: {
     firstName?: string | null;
     lastName?: string | null;
@@ -406,15 +420,31 @@ export interface Order {
     state?: string | null;
     country?: string | null;
   };
-  totals: {
-    subtotal: number;
+  items: {
+    product: string | Product;
+    productTitle?: string | null;
+    vendor: string | Vendor;
+    quantity: number;
+    price: number;
+    total: number;
+    status?: ('pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled') | null;
+    id?: string | null;
+  }[];
+  subtotal?: number | null;
+  tax?: number | null;
+  shippingCost?: number | null;
+  total?: number | null;
+  /**
+   * Kept for backwards compatibility
+   */
+  totals?: {
+    subtotal?: number | null;
     tax?: number | null;
     shipping?: number | null;
     discount?: number | null;
-    total: number;
+    total?: number | null;
   };
-  paymentStatus?: ('pending' | 'paid' | 'failed') | null;
-  paymentMethod?: string | null;
+  inventoryAdjusted?: boolean | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -432,6 +462,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'customers';
         value: string | Customer;
+      } | null)
+    | ({
+        relationTo: 'carts';
+        value: string | Cart;
       } | null)
     | ({
         relationTo: 'categories';
@@ -558,6 +592,26 @@ export interface CustomersSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "carts_select".
+ */
+export interface CartsSelect<T extends boolean = true> {
+  userId?: T;
+  items?:
+    | T
+    | {
+        product?: T;
+        quantity?: T;
+        unitPrice?: T;
+        lineTotal?: T;
+        id?: T;
+      };
+  subtotal?: T;
+  total?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "categories_select".
  */
 export interface CategoriesSelect<T extends boolean = true> {
@@ -600,13 +654,6 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   threeDModel?: T;
   category?: T;
-  specifications?:
-    | T
-    | {
-        name?: T;
-        value?: T;
-        id?: T;
-      };
   status?: T;
   featured?: T;
   vendor?: T;
@@ -690,18 +737,10 @@ export interface MediaSelect<T extends boolean = true> {
 export interface OrdersSelect<T extends boolean = true> {
   orderNumber?: T;
   customer?: T;
-  status?: T;
-  items?:
-    | T
-    | {
-        product?: T;
-        vendor?: T;
-        quantity?: T;
-        price?: T;
-        total?: T;
-        status?: T;
-        id?: T;
-      };
+  orderStatus?: T;
+  paymentStatus?: T;
+  paymentMethod?: T;
+  paymentId?: T;
   shippingAddress?:
     | T
     | {
@@ -723,6 +762,22 @@ export interface OrdersSelect<T extends boolean = true> {
         state?: T;
         country?: T;
       };
+  items?:
+    | T
+    | {
+        product?: T;
+        productTitle?: T;
+        vendor?: T;
+        quantity?: T;
+        price?: T;
+        total?: T;
+        status?: T;
+        id?: T;
+      };
+  subtotal?: T;
+  tax?: T;
+  shippingCost?: T;
+  total?: T;
   totals?:
     | T
     | {
@@ -732,8 +787,7 @@ export interface OrdersSelect<T extends boolean = true> {
         discount?: T;
         total?: T;
       };
-  paymentStatus?: T;
-  paymentMethod?: T;
+  inventoryAdjusted?: T;
   updatedAt?: T;
   createdAt?: T;
 }

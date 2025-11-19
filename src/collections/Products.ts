@@ -182,15 +182,15 @@ const Products: CollectionConfig = {
     //   ],
     // },
 
-    {
-      name: "specifications",
-      label: "Product Features",
-      type: "array",
-      fields: [
-        { name: "name", label: "Feature Name", type: "text", required: true },
-        { name: "value", label: "Feature Value", type: "text", required: true },
-      ],
-    },
+    // {
+    //   name: "specifications",
+    //   label: "Product Features",
+    //   type: "array",
+    //   fields: [
+    //     { name: "name", label: "Feature Name", type: "text", required: true },
+    //     { name: "value", label: "Feature Value", type: "text", required: true },
+    //   ],
+    // },
 
     // {
     //   name: "dimensions",

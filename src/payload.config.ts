@@ -16,6 +16,7 @@ import Orders from './collections/Orders'
 import Products from './collections/Products'
 import Customers from './collections/Customers'
 import Vendors from './collections/Vendors'
+import Cart from './collections/Cart'
 // import Admins from './collections/Admins'
 
 // If you want to keep your custom Google callback endpoint, you can.
@@ -56,6 +57,7 @@ export default buildConfig({
   collections: [
     Users,
     Customers,
+    Cart,
     Categories,
     Products,
     Vendors,

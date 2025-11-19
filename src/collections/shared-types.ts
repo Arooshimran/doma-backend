@@ -9,6 +9,7 @@ export const COLLECTION_SLUGS = {
   MEDIA: 'media',
   ADMINS: 'admins',
   ORDERS: 'orders',
+  CARTS: 'carts',
   USERS: 'users'
 } as const;
 
