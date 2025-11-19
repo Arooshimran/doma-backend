@@ -25,10 +25,14 @@ export async function OPTIONS() {
   })
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: { itemId: string } },
-) {
+type RouteContext = {
+  params: {
+    itemId: string
+  }
+}
+
+export async function DELETE(request: NextRequest, context: RouteContext) {
+  const { params } = context
   const headers = getCartCorsHeaders()
 
   try {
