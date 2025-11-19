@@ -244,13 +244,7 @@ export interface Category {
 export interface Media {
   id: string;
   alt: string;
-  /**
-   * Optional reference only
-   */
   cloudinaryPublicId?: string | null;
-  /**
-   * Optional reference only
-   */
   cloudinaryUrl?: string | null;
   updatedAt: string;
   createdAt: string;
