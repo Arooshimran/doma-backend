@@ -25,18 +25,18 @@ export async function OPTIONS() {
   })
 }
 
-type RouteContext = {
-  params: {
-    itemId: string
-  }
+type RouteParams = {
+  itemId: string
 }
 
-export async function DELETE(request: NextRequest, context: RouteContext) {
-  const { params } = context
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<RouteParams> },
+) {
   const headers = getCartCorsHeaders()
 
   try {
-    const { itemId } = params
+    const { itemId } = await params
     if (!itemId) {
       return NextResponse.json(
         { error: "itemId is required" },

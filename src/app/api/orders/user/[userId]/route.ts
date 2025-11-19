@@ -42,13 +42,17 @@ export async function OPTIONS() {
   })
 }
 
+type RouteParams = {
+  userId: string
+}
+
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } },
+  { params }: { params: Promise<RouteParams> },
 ) {
   const headers = getCorsHeaders()
   try {
-    const { userId } = params
+    const { userId } = await params
     if (!userId) {
       return NextResponse.json(
         { error: "userId param is required" },
