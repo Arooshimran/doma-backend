@@ -3,7 +3,7 @@ import { isAuthenticated } from "@/lib/access-helpers"
 
 const Customers: CollectionConfig = {
   slug: "customers",
-  auth: false, 
+  auth: true, 
   admin: {
     useAsTitle: "email",
   },

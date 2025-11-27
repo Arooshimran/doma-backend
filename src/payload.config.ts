@@ -17,6 +17,7 @@ import Products from './collections/Products'
 import Customers from './collections/Customers'
 import Vendors from './collections/Vendors'
 import Cart from './collections/Cart'
+import Reviews from './collections/Reviews'
 // import Admins from './collections/Admins'
 
 // If you want to keep your custom Google callback endpoint, you can.
@@ -64,6 +65,7 @@ export default buildConfig({
     Media,
     // Admins,
     Orders,
+    Reviews,
   ],
 
   editor: lexicalEditor(),

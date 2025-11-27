@@ -76,6 +76,7 @@ export interface Config {
     vendors: Vendor;
     media: Media;
     orders: Order;
+    reviews: Review;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
     'payload-migrations': PayloadMigration;
@@ -90,6 +91,7 @@ export interface Config {
     vendors: VendorsSelect<false> | VendorsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
     orders: OrdersSelect<false> | OrdersSelect<true>;
+    reviews: ReviewsSelect<false> | ReviewsSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
     'payload-migrations': PayloadMigrationsSelect<false> | PayloadMigrationsSelect<true>;
@@ -247,6 +249,19 @@ export interface Product {
      * Show discount by adding original price (e.g., 500 crossed out).
      */
     discountedPrice?: number | null;
+  };
+  /**
+   * Automatically calculated from approved reviews
+   */
+  rating?: {
+    /**
+     * Average rating from 1-5 stars
+     */
+    average?: number | null;
+    /**
+     * Number of approved reviews
+     */
+    count?: number | null;
   };
   inventory?: {
     quantity?: number | null;
@@ -423,9 +438,15 @@ export interface Order {
   items: {
     product: string | Product;
     productTitle?: string | null;
-    vendor: string | Vendor;
+    /**
+     * Auto-filled from selected product
+     */
+    vendor?: (string | null) | Vendor;
     quantity: number;
-    price: number;
+    /**
+     * Auto-filled from product pricing at time of purchase
+     */
+    price?: number | null;
     total: number;
     status?: ('pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled') | null;
     id?: string | null;
@@ -445,6 +466,47 @@ export interface Order {
     total?: number | null;
   };
   inventoryAdjusted?: boolean | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews".
+ */
+export interface Review {
+  id: string;
+  /**
+   * The product being reviewed
+   */
+  product: string | Product;
+  /**
+   * Auto-filled for customers, admins can select any customer
+   */
+  customer: string | Customer;
+  /**
+   * Rating from 1 to 5 stars
+   */
+  rating: number;
+  /**
+   * Review title/headline
+   */
+  title?: string | null;
+  /**
+   * Detailed review text
+   */
+  description: string;
+  /**
+   * Automatically set to true if customer has purchased this product
+   */
+  verifiedPurchase?: boolean | null;
+  /**
+   * Number of users who found this review helpful
+   */
+  helpfulCount?: number | null;
+  /**
+   * Number of times this review has been reported
+   */
+  reportedCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -486,6 +548,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'orders';
         value: string | Order;
+      } | null)
+    | ({
+        relationTo: 'reviews';
+        value: string | Review;
       } | null);
   globalSlug?: string | null;
   user:
@@ -639,6 +705,12 @@ export interface ProductsSelect<T extends boolean = true> {
         price?: T;
         discountedPrice?: T;
       };
+  rating?:
+    | T
+    | {
+        average?: T;
+        count?: T;
+      };
   inventory?:
     | T
     | {
@@ -788,6 +860,22 @@ export interface OrdersSelect<T extends boolean = true> {
         total?: T;
       };
   inventoryAdjusted?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "reviews_select".
+ */
+export interface ReviewsSelect<T extends boolean = true> {
+  product?: T;
+  customer?: T;
+  rating?: T;
+  title?: T;
+  description?: T;
+  verifiedPurchase?: T;
+  helpfulCount?: T;
+  reportedCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }

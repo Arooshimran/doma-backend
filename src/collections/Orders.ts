@@ -150,7 +150,10 @@ const Orders: CollectionConfig = {
           name: "vendor",
           type: "relationship",
           relationTo: COLLECTION_SLUGS.VENDORS,
-          required: true,
+          admin: {
+            readOnly: true,
+            description: "Auto-filled from selected product",
+          },
         },
         {
           name: "quantity",
@@ -162,7 +165,10 @@ const Orders: CollectionConfig = {
           name: "price",
           label: "Unit Price (at purchase)",
           type: "number",
-          required: true,
+          admin: {
+            readOnly: true,
+            description: "Auto-filled from product pricing at time of purchase",
+          },
         },
         {
           name: "total",

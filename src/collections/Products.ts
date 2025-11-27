@@ -100,6 +100,39 @@ const Products: CollectionConfig = {
       ],
     },
 
+    // Rating (auto-calculated from reviews)
+    {
+      type: "group",
+      name: "rating",
+      label: "Product Rating",
+      admin: {
+        readOnly: true,
+        description: "Automatically calculated from approved reviews",
+      },
+      fields: [
+        {
+          name: "average",
+          label: "Average Rating",
+          type: "number",
+          defaultValue: 0,
+          admin: {
+            readOnly: true,
+            description: "Average rating from 1-5 stars",
+          },
+        },
+        {
+          name: "count",
+          label: "Total Reviews",
+          type: "number",
+          defaultValue: 0,
+          admin: {
+            readOnly: true,
+            description: "Number of approved reviews",
+          },
+        },
+      ],
+    },
+
     // Stock
     {
       type: "group",
