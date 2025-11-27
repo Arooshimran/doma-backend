@@ -1,23 +1,22 @@
 // src/app/api/admin/vendors/approve/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
   console.log("🎯 === VENDOR APPROVAL REQUEST STARTED ===")
   
   try {
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
       console.error("❌ Missing vendorId")
       return NextResponse.json(
         { error: "Vendor ID is required" },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
 
@@ -50,7 +49,7 @@ export async function POST(request: NextRequest) {
       console.error("❌ Vendor not found")
       return NextResponse.json(
         { error: "Vendor not found" },
-        { status: 404, headers: getCorsHeaders() }
+        { status: 404, headers }
       )
     }
 
@@ -69,7 +68,7 @@ export async function POST(request: NextRequest) {
           message: "Vendor is already approved",
           vendor: existingVendor 
         },
-        { status: 200, headers: getCorsHeaders() }
+        { status: 200, headers }
       )
     }
 
@@ -192,7 +191,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 200,
-        headers: getCorsHeaders(),
+        headers,
       }
     )
 
@@ -219,7 +218,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 500,
-        headers: getCorsHeaders(),
+        headers,
       }
     )
   }

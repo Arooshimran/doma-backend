@@ -1,19 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "GET, OPTIONS",
+  })
 
 // ✅ Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
@@ -33,7 +31,7 @@ export async function GET(request: NextRequest) {
         { error: "Email parameter is required" },
         {
           status: 400,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -61,7 +59,7 @@ export async function GET(request: NextRequest) {
           { error: "No vendor account found with this email address" },
           {
             status: 404,
-            headers: getCorsHeaders(),
+            headers: corsHeaders(request),
           }
         )
       }
@@ -89,7 +87,7 @@ export async function GET(request: NextRequest) {
         },
         {
           status: 200,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
 
@@ -99,7 +97,7 @@ export async function GET(request: NextRequest) {
         { error: "Database error while checking vendor status" },
         {
           status: 500,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -117,7 +115,7 @@ export async function GET(request: NextRequest) {
         { error: "Server configuration error. Please restart the backend server." },
         {
           status: 500,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -130,7 +128,7 @@ export async function GET(request: NextRequest) {
       },
       {
         status: 500,
-        headers: getCorsHeaders(),
+        headers: corsHeaders(request),
       }
     )
   }

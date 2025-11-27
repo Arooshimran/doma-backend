@@ -1,13 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  })
 
 // Helper function to extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
@@ -100,16 +98,17 @@ const handleCategory = async (payload: any, categoryName: string): Promise<strin
 }
 
 // ✅ Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   console.log("📋 Handling OPTIONS preflight request for vendor products")
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 // ✅ GET - Fetch vendor's products (FIXED VERSION)
 export async function GET(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 GET /api/vendor/products - Starting...")
     
@@ -118,9 +117,9 @@ export async function GET(request: NextRequest) {
       console.log("❌ Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
-        { 
+        {
           status: 401,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -170,7 +169,7 @@ export async function GET(request: NextRequest) {
     } : "No products found")
 
     return NextResponse.json(products, {
-      headers: getCorsHeaders()
+      headers,
     })
   } catch (error) {
     console.error("💥 Error fetching vendor products:", error)
@@ -179,9 +178,9 @@ export async function GET(request: NextRequest) {
         error: "Failed to fetch products",
         details: error instanceof Error ? error.message : "Unknown error"
       },
-      { 
+      {
         status: 500,
-        headers: getCorsHeaders()
+        headers,
       }
     )
   }
@@ -189,6 +188,7 @@ export async function GET(request: NextRequest) {
 
 // ✅ POST - Create new product (FIXED VERSION FOR YOUR PAYLOAD SCHEMA)
 export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 POST /api/vendor/products - Starting...")
     
@@ -201,9 +201,9 @@ export async function POST(request: NextRequest) {
       console.log("❌ Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
-        { 
+        {
           status: 401,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -219,9 +219,9 @@ export async function POST(request: NextRequest) {
       console.log("❌ Failed to parse request body:", parseError)
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
-        { 
+        {
           status: 400,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -244,9 +244,9 @@ export async function POST(request: NextRequest) {
       console.log("❌ Missing required fields")
       return NextResponse.json(
         { error: "Missing required fields: title, shortDescription, price" },
-        { 
+        {
           status: 400,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -257,9 +257,9 @@ export async function POST(request: NextRequest) {
       console.log("❌ Invalid price:", price)
       return NextResponse.json(
         { error: "Price must be a positive number" },
-        { 
+        {
           status: 400,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -335,7 +335,7 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 201,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     } catch (createError) {
@@ -366,9 +366,9 @@ export async function POST(request: NextRequest) {
           error: errorMessage,
           details: createError instanceof Error ? createError.message : "Unknown database error"
         },
-        { 
+        {
           status: 500,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -386,9 +386,9 @@ export async function POST(request: NextRequest) {
         error: "Internal server error",
         details: error instanceof Error ? error.message : "Unknown error"
       },
-      { 
+      {
         status: 500,
-        headers: getCorsHeaders()
+        headers,
       }
     )
   }
@@ -396,6 +396,7 @@ export async function POST(request: NextRequest) {
 
 // ✅ PUT - Update existing product (ENHANCED VERSION)
 export async function PUT(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 PUT /api/vendor/products - Starting update...")
     
@@ -405,9 +406,9 @@ export async function PUT(request: NextRequest) {
       console.log("❌ Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
-        { 
+        {
           status: 401,
-          headers: getCorsHeaders()
+          headers,
         }
       )
     }
@@ -425,7 +426,7 @@ export async function PUT(request: NextRequest) {
       console.log("❌ Product ID is required")
       return NextResponse.json(
         { error: "Product ID is required" },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
 
@@ -442,7 +443,7 @@ export async function PUT(request: NextRequest) {
       if (!existingProduct) {
         return NextResponse.json(
           { error: "Product not found" },
-          { status: 404, headers: getCorsHeaders() }
+          { status: 404, headers }
         )
       }
 
@@ -455,7 +456,7 @@ export async function PUT(request: NextRequest) {
         console.log("❌ Access denied - product belongs to different vendor")
         return NextResponse.json(
           { error: "Access denied - you can only edit your own products" },
-          { status: 403, headers: getCorsHeaders() }
+          { status: 403, headers }
         )
       }
 
@@ -465,7 +466,7 @@ export async function PUT(request: NextRequest) {
       console.error("💥 Error verifying product ownership:", verifyError)
       return NextResponse.json(
         { error: "Failed to verify product ownership" },
-        { status: 500, headers: getCorsHeaders() }
+        { status: 500, headers }
       )
     }
 
@@ -495,7 +496,7 @@ export async function PUT(request: NextRequest) {
         message: "Product updated successfully",
         product: updatedProduct 
       },
-      { status: 200, headers: getCorsHeaders() }
+      { status: 200, headers }
     )
   } catch (error) {
     console.error("💥 Error updating product:", error)
@@ -522,13 +523,14 @@ export async function PUT(request: NextRequest) {
         error: errorMessage,
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: statusCode, headers: getCorsHeaders() }
+      { status: statusCode, headers }
     )
   }
 }
 
 // ✅ DELETE - Delete product (FIXED VERSION)
 export async function DELETE(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     const payload = await getPayloadClient();
 
@@ -539,7 +541,7 @@ export async function DELETE(request: NextRequest) {
     if (!id) {
       return NextResponse.json(
         { error: "Product ID is required" },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       );
     }
 
@@ -550,13 +552,13 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json(
       { success: true, message: "Product deleted successfully" },
-      { status: 200, headers: getCorsHeaders() }
+      { status: 200, headers }
     );
   } catch (error) {
     console.error("💥 Error deleting product:", error);
     return NextResponse.json(
       { error: "Failed to delete product", details: error instanceof Error ? error.message : "Unknown error" },
-      { status: 500, headers: getCorsHeaders() }
+      { status: 500, headers }
     );
   }
 }

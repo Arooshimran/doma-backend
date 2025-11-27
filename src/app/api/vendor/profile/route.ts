@@ -1,13 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
+  })
 
 // Helper: extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
@@ -26,15 +24,16 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
 }
 
 // OPTIONS handler
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 // GET - Fetch vendor profile (ENHANCED)
 export async function GET(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 GET /api/vendor/profile - Starting...")
     
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
       console.log("❌ Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
-        { status: 401, headers: getCorsHeaders() }
+        { status: 401, headers }
       )
     }
     
@@ -63,7 +62,7 @@ export async function GET(request: NextRequest) {
       console.log("❌ Vendor not found for ID:", vendorId)
       return NextResponse.json(
         { error: "Vendor not found" },
-        { status: 404, headers: getCorsHeaders() }
+        { status: 404, headers }
       )
     }
     
@@ -116,7 +115,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json(
       { success: true, vendor: vendorProfile },
-      { headers: getCorsHeaders() }
+      { headers }
     )
   } catch (error) {
     console.error("💥 Error fetching vendor profile:", error)
@@ -125,13 +124,14 @@ export async function GET(request: NextRequest) {
         error: "Failed to fetch vendor profile",
         details: error instanceof Error ? error.message : "Unknown error"
       },
-      { status: 500, headers: getCorsHeaders() }
+      { status: 500, headers }
     )
   }
 }
 
 // PUT - Update vendor profile (ENHANCED)
 export async function PUT(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 PUT /api/vendor/profile - Starting update...")
     
@@ -140,7 +140,7 @@ export async function PUT(request: NextRequest) {
       console.log("❌ Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
-        { status: 401, headers: getCorsHeaders() }
+        { status: 401, headers }
       )
     }
     
@@ -153,7 +153,7 @@ export async function PUT(request: NextRequest) {
     if (!body.storeName?.trim()) {
       return NextResponse.json(
         { error: "Store name is required" },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
     
@@ -241,7 +241,7 @@ export async function PUT(request: NextRequest) {
     
     return NextResponse.json(
       { success: true, vendor: vendorProfile, message: "Profile updated successfully" },
-      { headers: getCorsHeaders() }
+      { headers }
     )
   } catch (error) {
     console.error("💥 Error updating vendor profile:", error)
@@ -265,7 +265,7 @@ export async function PUT(request: NextRequest) {
         error: errorMessage,
         details: error instanceof Error ? error.message : "Unknown error"
       },
-      { status: statusCode, headers: getCorsHeaders() }
+      { status: statusCode, headers }
     )
   }
 }

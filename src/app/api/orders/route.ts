@@ -1,27 +1,22 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { generateOrderNumber } from "@/lib/utils"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-const getCorsHeaders = () => {
-  const origins = (process.env.ALLOWED_ORIGINS ||
-    "http://localhost:3000,http://localhost:3001").split(",")
-  return {
-    "Access-Control-Allow-Origin": origins[0]!.trim(),
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  }
-}
+  })
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 export async function POST(request: NextRequest) {
-  const headers = getCorsHeaders()
+  const headers = corsHeaders(request)
   try {
     const payload = await getPayloadClient()
     const body = await request.json()

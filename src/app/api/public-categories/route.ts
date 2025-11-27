@@ -1,13 +1,14 @@
-import { NextResponse } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload-client";
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers";
 
-export async function GET() {
-  const headers = {
-    "Access-Control-Allow-Origin": "http://localhost:3001", // Frontend URL
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
     "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  };
+  });
+
+export async function GET(request: NextRequest) {
+  const headers = corsHeaders(request);
 
   try {
     const payload = await getPayloadClient();
@@ -32,13 +33,11 @@ export async function GET() {
 }
 
 // Handle preflight requests
-export async function OPTIONS() {
-  return NextResponse.json({}, {
-    headers: {
-      "Access-Control-Allow-Origin": "http://localhost:3001",
-      "Access-Control-Allow-Methods": "GET, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-      "Access-Control-Allow-Credentials": "true",
-    },
-  });
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json(
+    {},
+    {
+      headers: corsHeaders(request),
+    }
+  );
 }

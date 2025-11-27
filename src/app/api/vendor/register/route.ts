@@ -1,20 +1,18 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
 
 // ✅ Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   console.log("📋 Handling OPTIONS preflight request for registration")
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
@@ -43,7 +41,7 @@ export async function POST(request: NextRequest) {
           required: ["email", "password", "storeName"],
           received: Object.keys(vendorData)
         },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers: corsHeaders(request) }
       )
     }
 
@@ -71,7 +69,7 @@ export async function POST(request: NextRequest) {
             error: "Email already registered",
             message: "A vendor account with this email address already exists. Please use a different email or try logging in."
           },
-          { status: 409, headers: getCorsHeaders() }
+          { status: 409, headers: corsHeaders(request) }
         )
       }
 
@@ -80,7 +78,7 @@ export async function POST(request: NextRequest) {
       console.error("❌ Error checking existing vendor:", findError.message)
       return NextResponse.json(
         { error: "Database error while checking existing vendor" },
-        { status: 500, headers: getCorsHeaders() }
+        { status: 500, headers: corsHeaders(request) }
       )
     }
 
@@ -141,7 +139,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 201,
-        headers: getCorsHeaders(),
+        headers: corsHeaders(request),
       }
     )
 
@@ -210,7 +208,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: statusCode,
-        headers: getCorsHeaders(),
+        headers: corsHeaders(request),
       }
     )
   }

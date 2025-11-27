@@ -1,19 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
 
 // ✅ Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
@@ -33,7 +31,7 @@ export async function POST(request: NextRequest) {
         { error: "Email and password are required" },
         {
           status: 400,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -61,7 +59,7 @@ export async function POST(request: NextRequest) {
           { error: "No vendor account found with this email address. Please register first." },
           {
             status: 401,
-            headers: getCorsHeaders(),
+            headers: corsHeaders(request),
           }
         )
       }
@@ -86,7 +84,7 @@ export async function POST(request: NextRequest) {
           },
           {
             status: 403,
-            headers: getCorsHeaders(),
+            headers: corsHeaders(request),
           }
         )
       }
@@ -101,7 +99,7 @@ export async function POST(request: NextRequest) {
           },
           {
             status: 403,
-            headers: getCorsHeaders(),
+            headers: corsHeaders(request),
           }
         )
       }
@@ -112,7 +110,7 @@ export async function POST(request: NextRequest) {
         { error: "Database error while checking vendor" },
         {
           status: 500,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -137,7 +135,7 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 403,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -152,7 +150,7 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 403,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -173,7 +171,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 200,
-        headers: getCorsHeaders(),
+        headers: corsHeaders(request),
       }
     )
   } catch (err: any) {
@@ -194,7 +192,7 @@ export async function POST(request: NextRequest) {
         },
         {
           status: 401,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -205,7 +203,7 @@ export async function POST(request: NextRequest) {
         { error: "Server configuration error. Please restart the backend server." },
         {
           status: 500,
-          headers: getCorsHeaders(),
+          headers: corsHeaders(request),
         }
       )
     }
@@ -218,7 +216,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 500,
-        headers: getCorsHeaders(),
+        headers: corsHeaders(request),
       }
     )
   }

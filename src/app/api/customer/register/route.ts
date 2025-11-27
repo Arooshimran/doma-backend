@@ -1,21 +1,19 @@
 // src/app/api/customer/register/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001", // Adjust as needed
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  })
 
 // Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   console.log("📋 Handling OPTIONS preflight request for customer register")
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
@@ -33,9 +31,9 @@ export async function POST(request: NextRequest) {
     if (!email || !password || !firstName || !lastName) {
       return NextResponse.json(
         { error: "Email, password, first name, and last name are required" },
-        { 
+        {
           status: 400,
-          headers: getCorsHeaders()
+          headers: corsHeaders(request),
         }
       )
     }
@@ -45,9 +43,9 @@ export async function POST(request: NextRequest) {
     if (!emailRegex.test(email)) {
       return NextResponse.json(
         { error: "Please provide a valid email address" },
-        { 
+        {
           status: 400,
-          headers: getCorsHeaders()
+          headers: corsHeaders(request),
         }
       )
     }
@@ -56,9 +54,9 @@ export async function POST(request: NextRequest) {
     if (password.length < 6) {
       return NextResponse.json(
         { error: "Password must be at least 6 characters long" },
-        { 
+        {
           status: 400,
-          headers: getCorsHeaders()
+          headers: corsHeaders(request),
         }
       )
     }
@@ -78,9 +76,9 @@ export async function POST(request: NextRequest) {
     if (existingCustomers.docs.length > 0) {
       return NextResponse.json(
         { error: "A customer with this email already exists" },
-        { 
+        {
           status: 409,
-          headers: getCorsHeaders()
+          headers: corsHeaders(request),
         }
       )
     }
@@ -128,7 +126,7 @@ export async function POST(request: NextRequest) {
       },
       {
         status: 201,
-        headers: getCorsHeaders()
+        headers: corsHeaders(request),
       }
     )
     
@@ -140,9 +138,9 @@ export async function POST(request: NextRequest) {
         error: "Registration failed",
         details: error instanceof Error ? error.message : "Unknown error"
       },
-      { 
+      {
         status: 500,
-        headers: getCorsHeaders()
+        headers: corsHeaders(request),
       }
     )
   }

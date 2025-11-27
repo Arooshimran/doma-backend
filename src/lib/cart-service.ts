@@ -1,18 +1,16 @@
 import type { NextRequest } from "next/server"
 import type { Payload } from "payload"
 import { COLLECTION_SLUGS } from "@/collections/shared-types"
+import { buildCorsHeaders, buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-export const getCartCorsHeaders = () => {
-  const origins = (process.env.ALLOWED_ORIGINS ||
-    "http://localhost:3000,http://localhost:3001").split(",")
-
-  return {
-    "Access-Control-Allow-Origin": origins[0]!.trim(),
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Allow-Credentials": "true",
-  }
-}
+export const getCartCorsHeaders = (request?: NextRequest) =>
+  request
+    ? buildCorsHeadersFromRequest(request, {
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      })
+    : buildCorsHeaders(undefined, {
+        "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+      })
 
 export type TokenPayload = {
   id: string

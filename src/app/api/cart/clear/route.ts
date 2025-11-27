@@ -8,15 +8,15 @@ import {
   resolveCartAccess,
 } from "@/lib/cart-service"
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCartCorsHeaders(),
+    headers: getCartCorsHeaders(request),
   })
 }
 
 export async function POST(request: NextRequest) {
-  const headers = getCartCorsHeaders()
+  const headers = getCartCorsHeaders(request)
 
   try {
     const payload = await getPayloadClient()

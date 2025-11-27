@@ -1,24 +1,23 @@
 // app/api/upload/media/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
 
 // Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("📸 POST /api/upload/media - Starting file upload...")
     
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
       console.error("❌ Failed to parse form data:", error)
       return NextResponse.json(
         { error: 'Failed to parse form data' }, 
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
 
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ No file provided")
       return NextResponse.json(
         { error: 'No file provided' }, 
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
 
@@ -66,7 +65,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ Invalid file type:", file.type)
       return NextResponse.json({
         error: 'Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG files are allowed.'
-      }, { status: 400, headers: getCorsHeaders() })
+      }, { status: 400, headers })
     }
 
     // Validate file size (10MB max)
@@ -75,7 +74,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ File too large:", file.size)
       return NextResponse.json({
         error: 'File too large. Maximum size is 10MB.'
-      }, { status: 400, headers: getCorsHeaders() })
+      }, { status: 400, headers })
     }
 
     try {
@@ -118,7 +117,7 @@ export async function POST(request: NextRequest) {
           height: (uploadedMedia as any).height,
         },
         message: 'File uploaded successfully'
-      }, { headers: getCorsHeaders() })
+      }, { headers })
       
     } catch (uploadError) {
       console.error("💥 Upload failed:", uploadError)
@@ -138,7 +137,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: errorMessage,
         details: uploadError instanceof Error ? uploadError.message : "Unknown upload error"
-      }, { status: 500, headers: getCorsHeaders() })
+      }, { status: 500, headers })
     }
 
   } catch (error) {
@@ -147,6 +146,6 @@ export async function POST(request: NextRequest) {
       success: false,
       error: 'Internal server error during file upload',
       details: error instanceof Error ? error.message : String(error)
-    }, { status: 500, headers: getCorsHeaders() })
+    }, { status: 500, headers })
   }
 }

@@ -18,10 +18,10 @@ const getItemIdentifier = (item: CartItemInput | null | undefined): string | nul
   return resolveRelationId(item.id)
 }
 
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCartCorsHeaders(),
+    headers: getCartCorsHeaders(request),
   })
 }
 
@@ -33,7 +33,7 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<RouteParams> },
 ) {
-  const headers = getCartCorsHeaders()
+  const headers = getCartCorsHeaders(request)
 
   try {
     const { itemId } = await params

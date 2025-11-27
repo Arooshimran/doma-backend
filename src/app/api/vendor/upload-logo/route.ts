@@ -1,14 +1,12 @@
 // app/api/vendor/upload-logo/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getPayloadClient } from '@/lib/payload-client';
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers";
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "http://localhost:3001",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
 
 // Helper to extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
@@ -27,15 +25,16 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
 }
 
 // OPTIONS handler for CORS preflight
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 // POST - Upload vendor logo (ENHANCED)
 export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 POST /api/vendor/upload-logo - Starting...")
     
@@ -45,7 +44,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
-        { status: 401, headers: getCorsHeaders() }
+        { status: 401, headers }
       )
     }
     
@@ -67,7 +66,7 @@ export async function POST(request: NextRequest) {
           error: 'Failed to parse form data',
           details: formDataError instanceof Error ? formDataError.message : 'Unknown form data error'
         },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
     
@@ -77,7 +76,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ No file provided")
       return NextResponse.json(
         { error: 'No file provided' },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
     
@@ -93,7 +92,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ Invalid file type:", file.type)
       return NextResponse.json(
         { error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.' },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
 
@@ -103,7 +102,7 @@ export async function POST(request: NextRequest) {
       console.log("❌ File too large:", file.size)
       return NextResponse.json(
         { error: 'File too large. Maximum size is 5MB.' },
-        { status: 400, headers: getCorsHeaders() }
+        { status: 400, headers }
       )
     }
 
@@ -153,7 +152,7 @@ export async function POST(request: NextRequest) {
           alt: (mediaDoc as any).alt,
           filename: (mediaDoc as any).filename,
         },
-      }, { status: 201, headers: getCorsHeaders() })
+      }, { status: 201, headers })
       
     } catch (uploadError) {
       console.error('💥 Payload upload error:', uploadError)
@@ -162,7 +161,7 @@ export async function POST(request: NextRequest) {
           error: 'Failed to upload to media collection',
           details: uploadError instanceof Error ? uploadError.message : 'Unknown upload error'
         },
-        { status: 500, headers: getCorsHeaders() }
+        { status: 500, headers }
       )
     }
   } catch (error) {
@@ -172,7 +171,7 @@ export async function POST(request: NextRequest) {
         error: 'Failed to upload logo',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
-      { status: 500, headers: getCorsHeaders() }
+      { status: 500, headers }
     )
   }
 }

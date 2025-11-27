@@ -1,25 +1,24 @@
 // app/api/vendor/categories/route.ts
-import { NextResponse } from "next/server"
+import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
-// CORS headers helper
-const getCorsHeaders = () => ({
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization",
-  "Access-Control-Allow-Credentials": "true",
-})
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  })
 
 // Handle preflight OPTIONS request
-export async function OPTIONS() {
+export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
-    headers: getCorsHeaders(),
+    headers: corsHeaders(request),
   })
 }
 
 // GET - Fetch all categories
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 GET /api/vendor/categories - Starting...")
     
@@ -47,7 +46,7 @@ export async function GET() {
         isActive: cat.isActive,
         sortOrder: cat.sortOrder,
       })),
-    }, { headers: getCorsHeaders() })
+    }, { headers })
     
   } catch (error) {
     console.error("💥 Error fetching categories:", error)
@@ -56,14 +55,15 @@ export async function GET() {
       error: "Failed to fetch categories",
       details: error instanceof Error ? error.message : "Unknown error"
     }, { 
-      status: 500, 
-      headers: getCorsHeaders() 
+      status: 500,
+      headers
     })
   }
 }
 
 // POST - Create new category (optional, for admin use)
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
   try {
     console.log("🚀 POST /api/vendor/categories - Creating new category...")
     
@@ -76,9 +76,9 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         error: "Category name is required"
-      }, { 
-        status: 400, 
-        headers: getCorsHeaders() 
+      }, {
+        status: 400,
+        headers
       })
     }
 
@@ -100,9 +100,9 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: false,
         error: "Category with this name already exists"
-      }, { 
-        status: 400, 
-        headers: getCorsHeaders() 
+      }, {
+        status: 400,
+        headers
       })
     }
 
@@ -129,9 +129,9 @@ export async function POST(request: Request) {
         isActive: newCategory.isActive,
         sortOrder: newCategory.sortOrder,
       }
-    }, { 
+    }, {
       status: 201,
-      headers: getCorsHeaders() 
+      headers
     })
     
   } catch (error) {
@@ -141,8 +141,8 @@ export async function POST(request: Request) {
       error: "Failed to create category",
       details: error instanceof Error ? error.message : "Unknown error"
     }, { 
-      status: 500, 
-      headers: getCorsHeaders() 
+      status: 500,
+      headers
     })
   }
 }
