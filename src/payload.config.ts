@@ -1,4 +1,3 @@
-// storage-adapter-import-placeholder
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
@@ -20,10 +19,6 @@ import Cart from './collections/Cart'
 import Reviews from './collections/Reviews'
 // import Admins from './collections/Admins'
 
-// If you want to keep your custom Google callback endpoint, you can.
-// But built-in OAuth is usually easier to maintain.
-// import { googleAuthHandler } from "src/app/api/auth/google-callback"
-
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
@@ -37,6 +32,9 @@ const smtpPass =
   process.env.NEXT_PUBLIC_SMTP_PASS ||
   process.env.EMAIL_PASS
 
+// Fallback to gmail host if not specified, but prefer env var
+const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -45,20 +43,26 @@ export default buildConfig({
     },
   },
 
-    // Email configuration - completely optional to prevent build failures
-    ...(smtpUser && smtpPass ? {
-      email: nodemailerAdapter({
-        transport: nodemailer.createTransport({
-          service: 'gmail',
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-        }),
-        defaultFromAddress: smtpUser,
-        defaultFromName: 'DOMA',
+  // Email configuration - FIXED for Production
+  ...(smtpUser && smtpPass ? {
+    email: nodemailerAdapter({
+      transport: nodemailer.createTransport({
+        // REMOVED: service: 'gmail', <--- This was the cause of the timeout
+        host: smtpHost,
+        port: 465, // Force secure port
+        secure: true, // Force SSL
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+        // detailed debug logs in production to help identify issues
+        logger: true, 
+        debug: true, 
       }),
-    } : {}),
+      defaultFromAddress: smtpUser,
+      defaultFromName: 'DOMA',
+    }),
+  } : {}),
 
   // Auth configuration - using Users collection for admin login only
   auth: {
@@ -94,13 +98,6 @@ export default buildConfig({
 
   plugins: [
     payloadCloudPlugin(),
-    // cloudinaryPlugin({
-    //   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    //   api_key: process.env.CLOUDINARY_API_KEY,
-    //   api_secret: process.env.CLOUDINARY_API_SECRET,
-    //   // plugin options: folder, public_id rules, etc.
-    // })
-    // storage-adapter-placeholder
   ],
 
   // Derive allowed origins from env for prod safety; fallback to local dev
@@ -125,6 +122,5 @@ export default buildConfig({
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
-  
     
 } as any)
