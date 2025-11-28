@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
             email: vendor.email,
             storeName: vendor.storeName,
             status: vendor.status,
-            approvedAt: vendor.approvedAt,
+            approvalNote: vendor.approvalNote,
             rejectionReason: vendor.rejectionReason,
           },
         },

@@ -29,16 +29,27 @@ export async function POST(request: NextRequest) {
     }
 
     // 💡 Ensure category and vendor are passed as string IDs
-    const data = {
+    const data: any = {
       title: body.title,
-      price: body.price,
+      slug: body.slug || body.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       category: typeof body.category === "object" ? body.category.id : body.category,
       vendor: typeof body.vendor === "object" ? body.vendor.id : body.vendor,
-      shortDescription: body.shortDescription || "",
-      longDescription: body.longDescription || "",
+      Description: body.Description || body.shortDescription || "", // Collection uses "Description" (capital D)
+      pricing: {
+        price: body.price || body.pricing?.price,
+        ...(body.discountedPrice && { discountedPrice: body.discountedPrice }),
+        ...(body.pricing?.discountedPrice && { discountedPrice: body.pricing.discountedPrice }),
+      },
       status: body.status || "draft",
-      images: body.images || [],
-      threeDModel: body.threeDModel || null,
+      ...(body.images && { images: body.images }),
+      ...(body.threeDModel && { threeDModel: body.threeDModel }),
+      ...(body.featured !== undefined && { featured: body.featured }),
+      ...(body.size && { size: body.size }),
+      ...(body.colors && { colors: body.colors }),
+      inventory: body.inventory || {
+        quantity: 0,
+        lowStockThreshold: 5
+      },
     };
 
     const createdProduct = await payload.create({
@@ -85,7 +96,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.or = [
         { title: { contains: search } },
-        { shortDescription: { contains: search } },
+        { Description: { contains: search } }, // Collection uses "Description" (capital D)
       ];
     }
 

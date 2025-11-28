@@ -72,6 +72,7 @@ export interface Config {
     users: User;
     customers: Customer;
     carts: Cart;
+    wishlists: Wishlist;
     categories: Category;
     products: Product;
     vendors: Vendor;
@@ -87,6 +88,7 @@ export interface Config {
     users: UsersSelect<false> | UsersSelect<true>;
     customers: CustomersSelect<false> | CustomersSelect<true>;
     carts: CartsSelect<false> | CartsSelect<true>;
+    wishlists: WishlistsSelect<false> | WishlistsSelect<true>;
     categories: CategoriesSelect<false> | CategoriesSelect<true>;
     products: ProductsSelect<false> | ProductsSelect<true>;
     vendors: VendorsSelect<false> | VendorsSelect<true>;
@@ -436,6 +438,19 @@ export interface Vendor {
   password?: string | null;
 }
 /**
+ * Stores the list of products a customer has saved
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wishlists".
+ */
+export interface Wishlist {
+  id: string;
+  customer: string | Customer;
+  products?: (string | Product)[] | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
  * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "orders".
  */
@@ -563,6 +578,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'carts';
         value: string | Cart;
+      } | null)
+    | ({
+        relationTo: 'wishlists';
+        value: string | Wishlist;
       } | null)
     | ({
         relationTo: 'categories';
@@ -728,6 +747,16 @@ export interface CartsSelect<T extends boolean = true> {
       };
   subtotal?: T;
   total?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "wishlists_select".
+ */
+export interface WishlistsSelect<T extends boolean = true> {
+  customer?: T;
+  products?: T;
   updatedAt?: T;
   createdAt?: T;
 }

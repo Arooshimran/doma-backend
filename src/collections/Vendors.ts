@@ -218,11 +218,11 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
   try {
     await payload.sendEmail({
       to: vendor.email,
-      subject: `🎉 Your ${vendor.storeName} vendor application has been approved!`,
+      subject: `Your ${vendor.storeName} vendor application has been approved!`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #28a745; color: white; padding: 20px; text-align: center;">
-            <h1>🎉 Congratulations!</h1>
+            <h1>Congratulations!</h1>
           </div>
           <div style="padding: 30px; background: #f8f9fa;">
             <h2>Your vendor application has been approved!</h2>
@@ -230,14 +230,14 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
             <p>We're excited to inform you that your vendor application has been <strong>approved</strong>!</p>
             
             <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <h3>📋 Application Details:</h3>
+              <h3>Application Details:</h3>
               <p><strong>Store Name:</strong> ${vendor.storeName}</p>
               <p><strong>Email:</strong> ${vendor.email}</p>
               <p><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">APPROVED</span></p>
               <p><strong>Approved Date:</strong> ${new Date().toLocaleDateString()}</p>
             </div>
 
-            <p>🚀 You can now log in to your vendor dashboard and start selling!</p>
+            <p>You can now log in to your vendor dashboard and start selling!</p>
             <p style="text-align: center;">
               <a href="http://localhost:3001/vendor/login" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
                 Login to Dashboard
@@ -267,7 +267,7 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <div style="background: #dc3545; color: white; padding: 20px; text-align: center;">
-            <h1>📋 Application Update</h1>
+            <h1>Application Update</h1>
           </div>
           <div style="padding: 30px; background: #f8f9fa;">
             <h2>Update on your vendor application</h2>
@@ -275,7 +275,7 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
             <p>Thank you for your interest in joining our marketplace. After careful review, we are unable to approve your vendor application at this time.</p>
             
             <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <h3>📋 Application Details:</h3>
+              <h3>Application Details:</h3>
               <p><strong>Store Name:</strong> ${vendor.storeName}</p>
               <p><strong>Email:</strong> ${vendor.email}</p>
               <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">NOT APPROVED</span></p>
@@ -284,7 +284,7 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
 
             ${vendor.rejectionReason ? `
               <div style="background: white; padding: 20px; border-left: 4px solid #dc3545; border-radius: 5px; margin: 20px 0;">
-                <h3>📝 Reason for Decision:</h3>
+                <h3>Reason for Decision:</h3>
                 <p>${vendor.rejectionReason}</p>
               </div>
             ` : ''}

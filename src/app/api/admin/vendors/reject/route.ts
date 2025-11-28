@@ -87,8 +87,6 @@ export async function POST(request: NextRequest) {
       id: vendorId,
       data: {
         status: "rejected",
-        rejectedBy: adminId,
-        rejectedAt: new Date().toISOString(),
         rejectionReason: rejectionReason,
       },
     })
@@ -119,7 +117,7 @@ export async function POST(request: NextRequest) {
           <body>
             <div class="container">
               <div class="header">
-                <h1>📋 Application Update</h1>
+                <h1>Application Update</h1>
               </div>
               <div class="content">
                 <h2>Update on your vendor application</h2>
@@ -127,7 +125,7 @@ export async function POST(request: NextRequest) {
                 <p>Thank you for your interest in joining our marketplace. After careful review, we are unable to approve your vendor application at this time.</p>
                 
                 <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                  <h3>📋 Application Details:</h3>
+                  <h3>Application Details:</h3>
                   <p><strong>Store Name:</strong> ${vendor.storeName}</p>
                   <p><strong>Email:</strong> ${vendor.email}</p>
                   <p><strong>Status:</strong> <span style="color: #dc3545; font-weight: bold;">NOT APPROVED</span></p>
@@ -135,11 +133,10 @@ export async function POST(request: NextRequest) {
                 </div>
 
                 <div class="reason-box">
-                  <h3>📝 Reason for Decision:</h3>
+                  <h3>Reason for Decision:</h3>
                   <p>${rejectionReason}</p>
                 </div>
 
-                <p>🔄 <strong>What you can do:</strong></p>
                 <ul>
                   <li>Review the feedback provided above</li>
                   <li>Address any issues mentioned in the reason</li>
@@ -210,9 +207,7 @@ export async function POST(request: NextRequest) {
           email: vendor.email,
           storeName: vendor.storeName,
           status: vendor.status,
-          rejectedAt: vendor.rejectedAt,
           rejectionReason: vendor.rejectionReason,
-          rejectedBy: vendor.rejectedBy,
         },
       },
       {

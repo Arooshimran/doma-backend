@@ -59,9 +59,9 @@ export async function POST(request: NextRequest) {
         user: {
           id: loginResult.user.id,
           email: loginResult.user.email,
-          firstName: loginResult.user.firstName,
-          lastName: loginResult.user.lastName,
-          // Add any other customer fields you want to return
+          Name: loginResult.user.Name, // Collection uses "Name" (capital N, single field)
+          phone: loginResult.user.phone,
+          status: loginResult.user.status,
         }
       },
       {

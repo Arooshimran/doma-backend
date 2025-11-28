@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
     console.log("🚀 POST /api/customer/register - Starting...")
     
     const body = await request.json()
-    const { email, password, firstName, lastName, phone } = body
+    const { email, password, Name, phone } = body
 
     console.log("📋 Registration attempt for email:", email)
 
     // Validation
-    if (!email || !password || !firstName || !lastName) {
+    if (!email || !password || !Name) {
       return NextResponse.json(
-        { error: "Email, password, first name, and last name are required" },
+        { error: "Email, password, and Name are required" },
         {
           status: 400,
           headers: corsHeaders(request),
@@ -83,17 +83,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create new customer
+    // Create new customer - only add Name field as per collection structure
     const newCustomer = await payload.create({
       collection: "customers",
       data: {
         email,
         password,
-        firstName,
-        lastName,
-        phone,
-        role: "customer", // If you have roles
-        // Add any other default fields for customers
+        Name, // Only Name field is added (status has defaultValue in collection)
+        ...(phone && { phone }),
       },
     })
 
@@ -119,8 +116,7 @@ export async function POST(request: NextRequest) {
         user: {
           id: newCustomer.id,
           email: newCustomer.email,
-          firstName: newCustomer.firstName,
-          lastName: newCustomer.lastName,
+          Name: newCustomer.Name,
           phone: newCustomer.phone,
         }
       },

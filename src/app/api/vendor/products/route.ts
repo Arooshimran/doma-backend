@@ -227,23 +227,26 @@ export async function POST(request: NextRequest) {
     }
 
     // FIXED: Validate required fields based on your collection structure
-    const { title, shortDescription, pricing, pricingDetails } = data
+    const { title, Description, shortDescription, pricing, pricingDetails } = data
+    
+    // Support both Description (collection field) and shortDescription (legacy API field)
+    const description = Description || shortDescription
     
     // Check for price in different possible structures
     const price = data.price || pricing?.price || pricingDetails?.sellingPrice
     
     console.log("🔍 Validating fields:", { 
       title, 
-      shortDescription, 
+      description, 
       price,
       pricing: data.pricing,
       pricingDetails: data.pricingDetails
     })
     
-    if (!title || !shortDescription || price === undefined || price === null) {
+    if (!title || !description || price === undefined || price === null) {
       console.log("❌ Missing required fields")
       return NextResponse.json(
-        { error: "Missing required fields: title, shortDescription, price" },
+        { error: "Missing required fields: title, Description (or shortDescription), price" },
         {
           status: 400,
           headers,
@@ -277,24 +280,27 @@ export async function POST(request: NextRequest) {
     }
 
     // FIXED: Create product data matching your Payload collection schema
-    const productData = {
+    const productData: any = {
       title: title.trim(),
       slug: title.trim().toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/(^-|-$)/g, ''), // Auto-generate slug from title
-      shortDescription: shortDescription.trim(),
+      Description: description.trim(), // Collection uses "Description" (capital D)
       
       // FIXED: Handle pricing based on your schema structure
-      // Based on your collection response, it uses "pricing" object
+      // Collection uses "pricing" group with "price" and "discountedPrice"
       pricing: {
         price: numericPrice,
-        // Add comparePrice if provided
-        ...(data.comparePrice && { comparePrice: Number(data.comparePrice) })
+        // Add discountedPrice if provided (collection field name)
+        ...(data.discountedPrice && { discountedPrice: Number(data.discountedPrice) }),
+        ...(data.comparePrice && { discountedPrice: Number(data.comparePrice) }) // Support legacy field name
       },
       
-      // FIXED: Add inventory structure (required by your collection)
-      inventory: data.inventory || {
-        trackQuantity: true,
+      // FIXED: Add inventory structure matching collection (no trackQuantity field)
+      inventory: data.inventory ? {
+        quantity: data.inventory.quantity ?? 0,
+        lowStockThreshold: data.inventory.lowStockThreshold ?? 5
+      } : {
         quantity: 0,
         lowStockThreshold: 5
       },
@@ -302,17 +308,13 @@ export async function POST(request: NextRequest) {
       vendor: vendorId, // This should be the ObjectId string
       status: data.status || "draft",
       
-      // Include optional fields if they exist
-      ...(data.longDescription && { description: data.longDescription }),
+      // Include optional fields that exist in collection
       ...(data.images && { images: data.images }),
       ...(categoryId && { category: categoryId }), // Only include if we have a valid category ID
-      
-      // Add other fields that your collection expects
-      tags: data.tags || [],
-      specifications: data.specifications || [],
-      dimensions: data.dimensions || {},
-      seo: data.seo || {},
-      featured: data.featured || false,
+      ...(data.threeDModel && { threeDModel: data.threeDModel }),
+      ...(data.featured !== undefined && { featured: data.featured }),
+      ...(data.size && { size: data.size }),
+      ...(data.colors && { colors: data.colors }),
     }
 
     console.log("📋 Product data to create:", JSON.stringify(productData, null, 2))

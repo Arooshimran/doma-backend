@@ -86,13 +86,9 @@ export async function GET(
               typeof review.customer === "object" && "id" in review.customer
                 ? review.customer.id
                 : review.customer,
-            firstName:
-              typeof review.customer === "object" && "firstName" in review.customer
-                ? review.customer.firstName
-                : null,
-            lastName:
-              typeof review.customer === "object" && "lastName" in review.customer
-                ? review.customer.lastName
+            Name:
+              typeof review.customer === "object" && "Name" in review.customer
+                ? review.customer.Name
                 : null,
           }
         : null,

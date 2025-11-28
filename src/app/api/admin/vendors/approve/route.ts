@@ -79,8 +79,6 @@ export async function POST(request: NextRequest) {
       id: vendorId,
       data: {
         status: "approved",
-        approvedBy: adminId,
-        approvedAt: new Date().toISOString(),
         approvalNote: approvalNote || "Approved by admin",
       },
     })
@@ -92,7 +90,7 @@ export async function POST(request: NextRequest) {
     try {
       await payload.sendEmail({
         to: vendor.email,
-        subject: `🎉 Your ${vendor.storeName} vendor application has been approved!`,
+        subject: `Your ${vendor.storeName} vendor application has been approved!`,
         html: `
           <!DOCTYPE html>
           <html>
@@ -183,8 +181,7 @@ export async function POST(request: NextRequest) {
           email: vendor.email,
           storeName: vendor.storeName,
           status: vendor.status,
-          approvedAt: vendor.approvedAt,
-          approvedBy: vendor.approvedBy,
+          approvalNote: vendor.approvalNote,
         },
       },
       {

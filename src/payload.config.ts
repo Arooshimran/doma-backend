@@ -16,6 +16,7 @@ import Products from './collections/Products'
 import Customers from './collections/Customers'
 import Vendors from './collections/Vendors'
 import Cart from './collections/Cart'
+import Wishlist from './collections/Wishlist'
 import Reviews from './collections/Reviews'
 
 const filename = fileURLToPath(import.meta.url)
@@ -46,6 +47,7 @@ export default buildConfig({
     Users,
     Customers,
     Cart,
+    Wishlist,
     Categories,
     Products,
     Vendors,

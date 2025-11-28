@@ -11,7 +11,8 @@ export const COLLECTION_SLUGS = {
   ORDERS: 'orders',
   CARTS: 'carts',
   USERS: 'users',
-  REVIEWS: 'reviews'
+  REVIEWS: 'reviews',
+  WISHLISTS: 'wishlists',
 } as const;
 
 // Create the union type from the constant values
