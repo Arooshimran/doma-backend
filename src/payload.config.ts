@@ -2,7 +2,6 @@ import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import nodemailer from "nodemailer";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { nodemailerAdapter } from "@payloadcms/email-nodemailer";
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -22,18 +21,10 @@ import Reviews from './collections/Reviews'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-const smtpUser =
-  process.env.SMTP_USER ||
-  process.env.NEXT_PUBLIC_SMTP_USER ||
-  process.env.EMAIL_USER
-
-const smtpPass =
-  process.env.SMTP_PASS ||
-  process.env.NEXT_PUBLIC_SMTP_PASS ||
-  process.env.EMAIL_PASS
-
-// Hardcode Gmail host to prevent lookup errors
-const smtpHost = 'smtp.gmail.com'
+// === RESEND CONFIGURATION ===
+// 1. We look for RESEND_API_KEY first. 
+// If not found, we check SMTP_PASS (just in case you named it that).
+const resendKey = process.env.RESEND_API_KEY || process.env.SMTP_PASS;
 
 export default buildConfig({
   admin: {
@@ -43,39 +34,27 @@ export default buildConfig({
     },
   },
 
-  // === EMAIL CONFIGURATION (FIXED) ===
-  ...(smtpUser && smtpPass ? {
+  // === EMAIL ADAPTER (RESEND SANDBOX) ===
+  ...(resendKey ? {
     email: nodemailerAdapter({
-      transport: nodemailer.createTransport(
-        {
-          host: smtpHost,
-          // CHANGE 1: Use Port 587 (STARTTLS) instead of 465
-          port: 587,
-          // CHANGE 2: secure must be FALSE for port 587
-          secure: false,
-          auth: {
-            user: smtpUser,
-            pass: smtpPass,
-          },
-          // CHANGE 3: CRITICAL! Forces IPv4.
-          // Node tries IPv6 by default on Render, which Gmail BLOCKS.
-          family: 4,
-
-          // Fail fast options so you don't wait 2 minutes to see errors
-          connectionTimeout: 10000,
-          greetingTimeout: 10000,
-          socketTimeout: 10000,
-
-          logger: true,
-          debug: true,
-        } as SMTPTransport.Options
-      ),
-      defaultFromAddress: smtpUser,
-      defaultFromName: 'DOMA',
+      transport: nodemailer.createTransport({
+        host: 'smtp.resend.com', // Force Resend Host
+        port: 465,               // Force Secure Port
+        secure: true,            // Force SSL
+        auth: {
+          user: 'resend',        // Force Resend Username
+          pass: resendKey,       // Your API Key
+        },
+        logger: true, // Keep logs on for debugging
+        debug: true,
+      }),
+      // SANDBOX REQUIREMENT:
+      // You MUST send from this specific address until you verify a domain.
+      defaultFromAddress: 'onboarding@resend.dev', 
+      defaultFromName: 'DOMA System',
     }),
   } : {}),
 
-  // Auth configuration
   auth: {
     collection: Users.slug,
   },
