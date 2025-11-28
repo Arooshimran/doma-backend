@@ -1,9 +1,8 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-import nodemailer from "nodemailer";
-import SMTPTransport from 'nodemailer/lib/smtp-transport'
-import { nodemailerAdapter } from "@payloadcms/email-nodemailer";
+// CHANGE 1: Import the API Adapter (Not Nodemailer)
+import { resendAdapter } from '@payloadcms/email-resend' 
 import path from 'path'
 import { buildConfig } from 'payload'
 import { fileURLToPath } from 'url'
@@ -22,26 +21,6 @@ import Reviews from './collections/Reviews'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
-// === RESEND CONFIGURATION ===
-type ResendSMTPTransportOptions = SMTPTransport.Options & { family?: number }
-
-const resendKey = process.env.RESEND_API_KEY || process.env.SMTP_PASS;
-const smtpTransportOptions: ResendSMTPTransportOptions | undefined = resendKey ? {
-  host: 'smtp.resend.com',
-  // CHANGE: Switch to Port 587 (More reliable on Cloud)
-  port: 587,
-  // CHANGE: Secure must be FALSE for 587
-  secure: false,
-  auth: {
-    user: 'resend',
-    pass: resendKey,
-  },
-  // IMPORTANT: Force IPv4 again (prevents network hangs)
-  family: 4,
-  logger: true,
-  debug: true,
-} : undefined;
-
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -50,14 +29,14 @@ export default buildConfig({
     },
   },
 
-  // === EMAIL ADAPTER (RESEND PORT 587) ===
-  ...(smtpTransportOptions ? {
-    email: nodemailerAdapter({
-      transport: nodemailer.createTransport(smtpTransportOptions),
-      defaultFromAddress: 'onboarding@resend.dev', 
-      defaultFromName: 'DOMA System',
-    }),
-  } : {}),
+  // === EMAIL CONFIGURATION (RESEND API) ===
+  // This uses HTTP (Port 443) instead of SMTP.
+  // It CANNOT be blocked by Render's firewalls.
+  email: resendAdapter({
+    defaultFromAddress: 'onboarding@resend.dev',
+    defaultFromName: 'DOMA System',
+    apiKey: process.env.RESEND_API_KEY || '',
+  }),
 
   auth: {
     collection: Users.slug,
