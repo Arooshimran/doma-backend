@@ -22,5 +22,13 @@ services:
         sync: false
       - key: SMTP_PASS
         sync: false
+      - key: SMTP_SERVICE
+        sync: false
+      - key: SMTP_HOST
+        sync: false
+      - key: SMTP_PORT
+        sync: false
+      - key: SMTP_SECURE
+        sync: false
       - key: ALLOWED_ORIGINS
         sync: false
