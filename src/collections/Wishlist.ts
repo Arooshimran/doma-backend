@@ -3,7 +3,10 @@ import { COLLECTION_SLUGS } from "./shared-types"
 import { isAdmin } from "@/lib/access-helpers"
 
 const getCustomerFilter = (req?: PayloadRequest | null) => {
-  const user = req?.user
+  if (!req) {
+    return false
+  }
+  const user = req.user
   if (user?.collection === COLLECTION_SLUGS.CUSTOMERS && user.id) {
     return { customer: { equals: user.id } }
   }
