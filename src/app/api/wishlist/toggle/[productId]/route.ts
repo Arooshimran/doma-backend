@@ -51,9 +51,13 @@ export async function OPTIONS(request: NextRequest) {
   })
 }
 
+type RouteParams = {
+  productId: string
+}
+
 export async function POST(
   request: NextRequest,
-  { params }: { params: { productId: string } },
+  { params }: { params: Promise<RouteParams> },
 ) {
   const headers = buildCorsHeadersFromRequest(request)
 
@@ -63,7 +67,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers })
     }
 
-    const productId = params.productId
+    const { productId } = await params
     if (!productId) {
       return NextResponse.json({ error: "productId is required" }, { status: 400, headers })
     }
