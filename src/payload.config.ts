@@ -2,6 +2,7 @@ import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import nodemailer from "nodemailer";
+import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { nodemailerAdapter } from "@payloadcms/email-nodemailer";
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -17,7 +18,6 @@ import Customers from './collections/Customers'
 import Vendors from './collections/Vendors'
 import Cart from './collections/Cart'
 import Reviews from './collections/Reviews'
-// import Admins from './collections/Admins'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -32,8 +32,8 @@ const smtpPass =
   process.env.NEXT_PUBLIC_SMTP_PASS ||
   process.env.EMAIL_PASS
 
-// Fallback to gmail host if not specified, but prefer env var
-const smtpHost = process.env.SMTP_HOST || 'smtp.gmail.com'
+// Hardcode Gmail host to prevent lookup errors
+const smtpHost = 'smtp.gmail.com'
 
 export default buildConfig({
   admin: {
@@ -43,28 +43,39 @@ export default buildConfig({
     },
   },
 
-  // Email configuration - FIXED for Production
+  // === EMAIL CONFIGURATION (FIXED) ===
   ...(smtpUser && smtpPass ? {
     email: nodemailerAdapter({
-      transport: nodemailer.createTransport({
-        // REMOVED: service: 'gmail', <--- This was the cause of the timeout
-        host: smtpHost,
-        port: 465, // Force secure port
-        secure: true, // Force SSL
-        auth: {
-          user: smtpUser,
-          pass: smtpPass,
-        },
-        // detailed debug logs in production to help identify issues
-        logger: true, 
-        debug: true, 
-      }),
+      transport: nodemailer.createTransport(
+        {
+          host: smtpHost,
+          // CHANGE 1: Use Port 587 (STARTTLS) instead of 465
+          port: 587,
+          // CHANGE 2: secure must be FALSE for port 587
+          secure: false,
+          auth: {
+            user: smtpUser,
+            pass: smtpPass,
+          },
+          // CHANGE 3: CRITICAL! Forces IPv4.
+          // Node tries IPv6 by default on Render, which Gmail BLOCKS.
+          family: 4,
+
+          // Fail fast options so you don't wait 2 minutes to see errors
+          connectionTimeout: 10000,
+          greetingTimeout: 10000,
+          socketTimeout: 10000,
+
+          logger: true,
+          debug: true,
+        } as SMTPTransport.Options
+      ),
       defaultFromAddress: smtpUser,
       defaultFromName: 'DOMA',
     }),
   } : {}),
 
-  // Auth configuration - using Users collection for admin login only
+  // Auth configuration
   auth: {
     collection: Users.slug,
   },
@@ -77,7 +88,6 @@ export default buildConfig({
     Products,
     Vendors,
     Media,
-    // Admins,
     Orders,
     Reviews,
   ],
@@ -100,7 +110,6 @@ export default buildConfig({
     payloadCloudPlugin(),
   ],
 
-  // Derive allowed origins from env for prod safety; fallback to local dev
   cors: {
     origin: (process.env.ALLOWED_ORIGINS ||
       'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com')
