@@ -1,5 +1,18 @@
 import type { Access } from 'payload'
 
+type RoleUser = {
+  collection: 'users'
+  role?: string
+  id?: string
+  email?: string
+}
+
+const isSuperAdminUser = (user: unknown): user is RoleUser =>
+  !!user &&
+  typeof user === 'object' &&
+  (user as RoleUser).collection === 'users' &&
+  (user as RoleUser).role === 'super-admin'
+
 // Helper function to check if user is authenticated (works in both dev and prod)
 export const isAuthenticated: Access = ({ req }) => {
   // In dev mode, allow if user exists
@@ -26,11 +39,11 @@ export const isAdmin: Access = ({ req }) => {
 export const isSuperAdmin: Access = ({ req }) => {
   // In dev mode, allow if user is super admin
   if (process.env.NODE_ENV === 'development') {
-    return req.user?.role === "super-admin"
+    return isSuperAdminUser(req.user)
   }
   
   // In production, require valid super admin user
-  return req.user?.role === "super-admin" && (!!req.user.id || !!req.user.email)
+  return isSuperAdminUser(req.user) && (!!req.user?.id || !!req.user?.email)
 }
 
 // Helper function to check if user is vendor
