@@ -110,7 +110,7 @@ export async function POST(request: NextRequest) {
           <body>
             <div class="container">
               <div class="header">
-                <h1>🎉 Congratulations!</h1>
+                <h1>Congratulations!</h1>
               </div>
               <div class="content">
                 <h2>Your vendor application has been approved!</h2>
@@ -118,15 +118,13 @@ export async function POST(request: NextRequest) {
                 <p>We're excited to inform you that your vendor application has been <strong>approved</strong>!</p>
                 
                 <div style="background: white; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                  <h3>📋 Application Details:</h3>
+                  <h3>Application Details:</h3>
                   <p><strong>Store Name:</strong> ${vendor.storeName}</p>
                   <p><strong>Email:</strong> ${vendor.email}</p>
                   <p><strong>Status:</strong> <span style="color: #28a745; font-weight: bold;">APPROVED</span></p>
                   <p><strong>Approved Date:</strong> ${new Date().toLocaleDateString()}</p>
                   ${approvalNote ? `<p><strong>Admin Note:</strong> ${approvalNote}</p>` : ''}
                 </div>
-
-                <p>🚀 <strong>What's next?</strong></p>
                 <ul>
                   <li>You can now log in to your vendor dashboard</li>
                   <li>Start adding your products to the marketplace</li>
@@ -137,7 +135,7 @@ export async function POST(request: NextRequest) {
                 <a href="http://localhost:3001/vendor/login" class="button">Login to Dashboard</a>
 
                 <p>If you have any questions, please don't hesitate to contact our support team.</p>
-                <p>Welcome to the marketplace! 🎊</p>
+                <p>Welcome to the marketplace!</p>
               </div>
               <div class="footer">
                 <p>This is an automated message from your marketplace platform.</p>

@@ -64,6 +64,7 @@ export type SupportedTimezones =
 export interface Config {
   auth: {
     users: UserAuthOperations;
+    customers: CustomerAuthOperations;
     vendors: VendorAuthOperations;
   };
   blocks: {};
@@ -106,6 +107,9 @@ export interface Config {
     | (User & {
         collection: 'users';
       })
+    | (Customer & {
+        collection: 'customers';
+      })
     | (Vendor & {
         collection: 'vendors';
       });
@@ -115,6 +119,24 @@ export interface Config {
   };
 }
 export interface UserAuthOperations {
+  forgotPassword: {
+    email: string;
+    password: string;
+  };
+  login: {
+    email: string;
+    password: string;
+  };
+  registerFirstUser: {
+    email: string;
+    password: string;
+  };
+  unlock: {
+    email: string;
+    password: string;
+  };
+}
+export interface CustomerAuthOperations {
   forgotPassword: {
     email: string;
     password: string;
@@ -184,9 +206,7 @@ export interface User {
 export interface Customer {
   id: string;
   googleId?: string | null;
-  email: string;
-  firstName?: string | null;
-  lastName?: string | null;
+  Name?: string | null;
   phone?: string | null;
   addresses?:
     | {
@@ -203,6 +223,21 @@ export interface Customer {
   status?: ('active' | 'suspended' | 'banned') | null;
   updatedAt: string;
   createdAt: string;
+  email: string;
+  resetPasswordToken?: string | null;
+  resetPasswordExpiration?: string | null;
+  salt?: string | null;
+  hash?: string | null;
+  loginAttempts?: number | null;
+  lockUntil?: string | null;
+  sessions?:
+    | {
+        id: string;
+        createdAt?: string | null;
+        expiresAt: string;
+      }[]
+    | null;
+  password?: string | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -560,6 +595,10 @@ export interface PayloadLockedDocument {
         value: string | User;
       }
     | {
+        relationTo: 'customers';
+        value: string | Customer;
+      }
+    | {
         relationTo: 'vendors';
         value: string | Vendor;
       };
@@ -576,6 +615,10 @@ export interface PayloadPreference {
     | {
         relationTo: 'users';
         value: string | User;
+      }
+    | {
+        relationTo: 'customers';
+        value: string | Customer;
       }
     | {
         relationTo: 'vendors';
@@ -636,9 +679,7 @@ export interface UsersSelect<T extends boolean = true> {
  */
 export interface CustomersSelect<T extends boolean = true> {
   googleId?: T;
-  email?: T;
-  firstName?: T;
-  lastName?: T;
+  Name?: T;
   phone?: T;
   addresses?:
     | T
@@ -655,6 +696,20 @@ export interface CustomersSelect<T extends boolean = true> {
   status?: T;
   updatedAt?: T;
   createdAt?: T;
+  email?: T;
+  resetPasswordToken?: T;
+  resetPasswordExpiration?: T;
+  salt?: T;
+  hash?: T;
+  loginAttempts?: T;
+  lockUntil?: T;
+  sessions?:
+    | T
+    | {
+        id?: T;
+        createdAt?: T;
+        expiresAt?: T;
+      };
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema

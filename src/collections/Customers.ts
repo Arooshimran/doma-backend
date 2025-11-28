@@ -26,8 +26,7 @@ const Customers: CollectionConfig = {
       required: true,
       unique: true,
     },
-    { name: "firstName", type: "text" },
-    { name: "lastName", type: "text" },
+    { name: "Name", type: "text" },
     { name: "phone", type: "text" },
     {
       name: "addresses",

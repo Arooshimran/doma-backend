@@ -27,6 +27,16 @@ import Reviews from './collections/Reviews'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const smtpUser =
+  process.env.SMTP_USER ||
+  process.env.NEXT_PUBLIC_SMTP_USER ||
+  process.env.EMAIL_USER
+
+const smtpPass =
+  process.env.SMTP_PASS ||
+  process.env.NEXT_PUBLIC_SMTP_PASS ||
+  process.env.EMAIL_PASS
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -36,16 +46,16 @@ export default buildConfig({
   },
 
     // Email configuration - completely optional to prevent build failures
-    ...(process.env.SMTP_USER && process.env.SMTP_PASS ? {
+    ...(smtpUser && smtpPass ? {
       email: nodemailerAdapter({
         transport: nodemailer.createTransport({
           service: 'gmail',
           auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS,
+            user: smtpUser,
+            pass: smtpPass,
           },
         }),
-        defaultFromAddress: process.env.SMTP_USER,
+        defaultFromAddress: smtpUser,
         defaultFromName: 'DOMA',
       }),
     } : {}),
