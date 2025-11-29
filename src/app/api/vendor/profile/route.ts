@@ -35,18 +35,18 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 GET /api/vendor/profile - Starting...")
+    console.log("GET /api/vendor/profile - Starting...")
     
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("❌ Unauthorized - Invalid or missing token")
+      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
     
-    console.log("✅ Vendor authenticated:", vendorId)
+    console.log("Vendor authenticated:", vendorId)
     
     const payload = await getPayloadClient()
     
@@ -59,14 +59,14 @@ export async function GET(request: NextRequest) {
     })
     
     if (!vendor) {
-      console.log("❌ Vendor not found for ID:", vendorId)
+      console.log("Vendor not found for ID:", vendorId)
       return NextResponse.json(
         { error: "Vendor not found" },
         { status: 404, headers }
       )
     }
     
-    console.log("✅ Vendor found:", {
+    console.log("Vendor found:", {
       id: vendor.id,
       email: vendor.email,
       storeName: vendor.storeName,
@@ -111,14 +111,14 @@ export async function GET(request: NextRequest) {
       updatedAt: vendor.updatedAt,
     }
     
-    console.log("📋 Returning vendor profile:", JSON.stringify(vendorProfile, null, 2))
+    console.log("Returning vendor profile:", JSON.stringify(vendorProfile, null, 2))
     
     return NextResponse.json(
       { success: true, vendor: vendorProfile },
       { headers }
     )
   } catch (error) {
-    console.error("💥 Error fetching vendor profile:", error)
+    console.error("Error fetching vendor profile:", error)
     return NextResponse.json(
       { 
         error: "Failed to fetch vendor profile",
@@ -133,21 +133,21 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 PUT /api/vendor/profile - Starting update...")
+    console.log("PUT /api/vendor/profile - Starting update...")
     
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("❌ Unauthorized - Invalid or missing token")
+      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
     
-    console.log("✅ Vendor authenticated:", vendorId)
+    console.log("Vendor authenticated:", vendorId)
     
     const body = await request.json()
-    console.log("📝 Update data received:", JSON.stringify(body, null, 2))
+    console.log("Update data received:", JSON.stringify(body, null, 2))
     
     // Validate required fields
     if (!body.storeName?.trim()) {
@@ -190,7 +190,7 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    console.log("💾 Final update data:", JSON.stringify(updateData, null, 2))
+    console.log("Final update data:", JSON.stringify(updateData, null, 2))
     
     const updatedVendor = await payload.update({
       collection: "vendors",
@@ -200,7 +200,7 @@ export async function PUT(request: NextRequest) {
       overrideAccess: true,
     })
     
-    console.log("✅ Vendor updated successfully:", updatedVendor.id)
+    console.log("Vendor updated successfully:", updatedVendor.id)
     
     // ENHANCED: Return complete updated profile with proper structure
     const vendorProfile = {
@@ -237,14 +237,14 @@ export async function PUT(request: NextRequest) {
       updatedAt: updatedVendor.updatedAt,
     }
     
-    console.log("📋 Returning updated vendor profile:", JSON.stringify(vendorProfile, null, 2))
+    console.log("Returning updated vendor profile:", JSON.stringify(vendorProfile, null, 2))
     
     return NextResponse.json(
       { success: true, vendor: vendorProfile, message: "Profile updated successfully" },
       { headers }
     )
   } catch (error) {
-    console.error("💥 Error updating vendor profile:", error)
+    console.error("Error updating vendor profile:", error)
     
     // Enhanced error handling
     let errorMessage = "Failed to update vendor profile"

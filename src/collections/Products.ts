@@ -7,6 +7,23 @@ const Products: CollectionConfig = {
   admin: {
     useAsTitle: "title",
   },
+  hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        // Auto-generate slug from title if not provided
+        if (data?.title && !data?.slug) {
+          data.slug = (data.title as string)
+            .toLowerCase()
+            .trim()
+            .replace(/[^\w\s-]/g, '') // Remove special chars
+            .replace(/\s+/g, '-') // Replace spaces with hyphens
+            .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
+            .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+        }
+        return data;
+      },
+    ],
+  },
   access: {
     read: () => true, // Public read access
     create: isAdminOrVendor, // Only admins and vendors can create
@@ -45,7 +62,7 @@ const Products: CollectionConfig = {
       required: true,
       unique: true,
       admin: {
-        description: "This will be used in the product URL (e.g., yourstore.com/products/this-slug).",
+        description: "This will be used in the product URL (e.g., yourstore.com/products/this-slug). Auto-generated from title.",
       },
     },
     {

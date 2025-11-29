@@ -17,13 +17,13 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
-  console.log("🎯 === VENDOR APPROVAL REQUEST STARTED ===")
+  console.log("=== VENDOR APPROVAL REQUEST STARTED ===")
   
   try {
     const payload = await getPayloadClient()
     const { vendorId, adminId, approvalNote } = await request.json()
 
-    console.log("📋 Approval request details:", {
+    console.log("Approval request details:", {
       vendorId,
       adminId,
       hasApprovalNote: !!approvalNote
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!vendorId) {
-      console.error("❌ Missing vendorId")
+      console.error("Missing vendorId")
       return NextResponse.json(
         { error: "Vendor ID is required" },
         { status: 400, headers }
@@ -39,21 +39,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Get vendor details first
-    console.log("🔍 Fetching vendor details...")
+    console.log("Fetching vendor details...")
     const existingVendor = await payload.findByID({
       collection: "vendors",
       id: vendorId,
     })
 
     if (!existingVendor) {
-      console.error("❌ Vendor not found")
+      console.error("Vendor not found")
       return NextResponse.json(
         { error: "Vendor not found" },
         { status: 404, headers }
       )
     }
 
-    console.log("✅ Found vendor:", {
+    console.log("Found vendor:", {
       email: existingVendor.email,
       storeName: existingVendor.storeName,
       currentStatus: existingVendor.status
@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
 
     // Check if already approved
     if (existingVendor.status === "approved") {
-      console.log("⚠️ Vendor already approved")
+      console.log("Vendor already approved")
       return NextResponse.json(
         { 
           success: true, 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Update vendor status
-    console.log("🔄 Updating vendor status to approved...")
+    console.log("Updating vendor status to approved...")
     const vendor = await payload.update({
       collection: "vendors",
       id: vendorId,
@@ -83,10 +83,10 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log("✅ Vendor status updated successfully")
+    console.log("Vendor status updated successfully")
 
     // Send approval email using Payload's email system
-    console.log("📧 Sending approval email...")
+    console.log("Sending approval email...")
     try {
       await payload.sendEmail({
         to: vendor.email,
@@ -159,18 +159,18 @@ export async function POST(request: NextRequest) {
         `
       })
 
-      console.log("✅ Approval email sent successfully")
+      console.log("Approval email sent successfully")
     } catch (emailError: unknown) {
       if (emailError && typeof emailError === 'object' && 'message' in emailError) {
-        console.error("❌ Failed to send approval email:", (emailError as { message: string }).message)
+        console.error("Failed to send approval email:", (emailError as { message: string }).message)
       } else {
-        console.error("❌ Failed to send approval email:", emailError)
+        console.error("Failed to send approval email:", emailError)
       }
       // Don't fail the whole request if email fails
-      console.log("⚠️ Continuing despite email failure...")
+      console.log("Continuing despite email failure...")
     }
 
-    console.log("🎉 === VENDOR APPROVAL COMPLETED SUCCESSFULLY ===\n")
+    console.log("=== VENDOR APPROVAL COMPLETED SUCCESSFULLY ===\n")
 
     return NextResponse.json(
       {
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error: unknown) {
-    console.error("💥 === VENDOR APPROVAL FAILED ===")
+    console.error("=== VENDOR APPROVAL FAILED ===")
     if (error && typeof error === 'object' && 'message' in error) {
       console.error("Approval error:", {
         message: (error as { message: string }).message,

@@ -19,7 +19,7 @@ export async function GET(request: NextRequest, context: any) {
   const headers = corsHeaders(request)
   try {
     const { params } = context;
-    console.log('🔍 Fetching product by ID:', params.id)
+    console.log('Fetching product by ID:', params.id)
     
     const payload = await getPayloadClient()
 
@@ -31,18 +31,18 @@ export async function GET(request: NextRequest, context: any) {
     })
 
     if (!product) {
-      console.log('❌ Product not found:', params.id)
+      console.log('Product not found:', params.id)
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404, headers }
       )
     }
 
-    console.log('✅ Product found:', { id: product.id, title: product.title, vendor: product.vendor })
+    console.log('Product found:', { id: product.id, title: product.title, vendor: product.vendor })
     
     return NextResponse.json(product, { headers })
   } catch (error) {
-    console.error("💥 Error fetching product:", error)
+    console.error("Error fetching product:", error)
     return NextResponse.json(
       { error: "Failed to fetch product" },
       { status: 500, headers }
@@ -63,7 +63,7 @@ export async function DELETE(request: NextRequest, context: any) {
 
     return NextResponse.json({ success: true }, { headers });
   } catch (error) {
-    console.error("💥 Error deleting product:", error);
+    console.error("Error deleting product:", error);
     return NextResponse.json(
       { error: "Failed to delete product", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500, headers }
@@ -87,7 +87,7 @@ export async function PUT(request: NextRequest, context: any) {
 
     return NextResponse.json({ product: updatedProduct }, { headers });
   } catch (error) {
-    console.error("💥 Error updating product:", error);
+    console.error("Error updating product:", error);
     return NextResponse.json(
       { error: "Failed to update product", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500, headers }

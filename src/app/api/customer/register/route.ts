@@ -10,7 +10,7 @@ const corsHeaders = (request?: NextRequest) =>
 
 // Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
-  console.log("📋 Handling OPTIONS preflight request for customer register")
+  console.log("Handling OPTIONS preflight request for customer register")
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(request),
@@ -20,12 +20,12 @@ export async function OPTIONS(request: NextRequest) {
 // POST - Customer Registration
 export async function POST(request: NextRequest) {
   try {
-    console.log("🚀 POST /api/customer/register - Starting...")
+    console.log("POST /api/customer/register - Starting...")
     
     const body = await request.json()
     const { email, password, Name, phone } = body
 
-    console.log("📋 Registration attempt for email:", email)
+    console.log("Registration attempt for email:", email)
 
     // Validation
     if (!email || !password || !Name) {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log("✅ Customer created successfully:", newCustomer.email)
+    console.log("Customer created successfully:", newCustomer.email)
 
     // Automatically log in the new customer
     const loginResult = await payload.login({
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log("✅ Auto-login successful for new customer")
+    console.log("Auto-login successful for new customer")
 
     // Return success with user data and token
     return NextResponse.json(
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
     )
     
   } catch (error) {
-    console.error("💥 Customer registration error:", error)
+    console.error("Customer registration error:", error)
     
     return NextResponse.json(
       { 

@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getPayloadClient } from "@/lib/payload-client";
 
-// 📦 CREATE PRODUCT
+// CREATE PRODUCT
 export async function POST(request: NextRequest) {
   try {
-    console.log("⚠️ POST /api/products received");
+    console.log("POST /api/products received");
 
     const payload = await getPayloadClient();
 
@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 💡 Ensure category and vendor are passed as string IDs
+    // Ensure category and vendor are passed as string IDs
     const data: any = {
       title: body.title,
       slug: body.slug || body.title?.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -57,10 +57,10 @@ export async function POST(request: NextRequest) {
       data,
     });
 
-    console.log("✅ Product created successfully:", createdProduct.id);
+    console.log("Product created successfully:", createdProduct.id);
     return NextResponse.json(createdProduct, { status: 201 });
   } catch (error) {
-    console.error("💥 Error creating product:", error);
+    console.error("Error creating product:", error);
     return NextResponse.json(
       {
         error: "Internal server error",
@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// 📦 GET PRODUCTS
+// GET PRODUCTS
 export async function GET(request: NextRequest) {
   try {
-    console.log("🚀 GET /api/products - Starting...");
+    console.log("GET /api/products - Starting...");
 
     const payload = await getPayloadClient();
     const { searchParams } = new URL(request.url);
@@ -113,11 +113,11 @@ export async function GET(request: NextRequest) {
       overrideAccess: true,
     });
 
-    console.log("✅ Products fetched:", products.docs.length);
+    console.log("Products fetched:", products.docs.length);
 
     return NextResponse.json(products);
   } catch (error) {
-    console.error("💥 Error fetching products:", error);
+    console.error("Error fetching products:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch products",
@@ -150,7 +150,7 @@ export async function PUT(request: NextRequest) {
 
     return NextResponse.json({ product: updatedProduct });
   } catch (error) {
-    console.error("💥 Error updating product:", error);
+    console.error("Error updating product:", error);
     return NextResponse.json(
       { error: "Failed to update product", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }
@@ -158,7 +158,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// 📦 DELETE PRODUCT
+// DELETE PRODUCT
 export async function DELETE(request: NextRequest) {
   try {
     const payload = await getPayloadClient();
@@ -178,7 +178,7 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("💥 Error deleting product:", error);
+    console.error("Error deleting product:", error);
     return NextResponse.json(
       { error: "Failed to delete product", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500 }

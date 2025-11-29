@@ -20,7 +20,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 GET /api/vendor/categories - Starting...")
+    console.log("GET /api/vendor/categories - Starting...")
     
     const payload = await getPayloadClient()
     
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       overrideAccess: true, // Bypass access control
     })
 
-    console.log("✅ Categories fetched successfully:", categories.docs.length)
+    console.log("Categories fetched successfully:", categories.docs.length)
 
     return NextResponse.json({
       success: true,
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     }, { headers })
     
   } catch (error) {
-    console.error("💥 Error fetching categories:", error)
+    console.error("Error fetching categories:", error)
     return NextResponse.json({
       success: false,
       error: "Failed to fetch categories",
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 POST /api/vendor/categories - Creating new category...")
+    console.log("POST /api/vendor/categories - Creating new category...")
     
     const payload = await getPayloadClient()
     const data = await request.json()
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
       overrideAccess: true,
     })
 
-    console.log("✅ Category created successfully:", newCategory.id)
+    console.log("Category created successfully:", newCategory.id)
 
     return NextResponse.json({
       success: true,
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
     })
     
   } catch (error) {
-    console.error("💥 Error creating category:", error)
+    console.error("Error creating category:", error)
     return NextResponse.json({
       success: false,
       error: "Failed to create category",

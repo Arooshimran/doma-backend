@@ -19,7 +19,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("📸 POST /api/upload/media - Starting file upload...")
+    console.log("POST /api/upload/media - Starting file upload...")
     
     const payload = await getPayloadClient()
     
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     try {
       formData = await request.formData()
     } catch (error) {
-      console.error("❌ Failed to parse form data:", error)
+      console.error("Failed to parse form data:", error)
       return NextResponse.json(
         { error: 'Failed to parse form data' }, 
         { status: 400, headers }
@@ -38,14 +38,14 @@ export async function POST(request: NextRequest) {
     const alt = formData.get('alt') as string
 
     if (!file) {
-      console.log("❌ No file provided")
+      console.log("No file provided")
       return NextResponse.json(
         { error: 'No file provided' }, 
         { status: 400, headers }
       )
     }
 
-    console.log("📋 File details:", {
+    console.log("File details:", {
       name: file.name,
       size: file.size,
       type: file.type
@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     ]
     
     if (!allowedTypes.includes(file.type)) {
-      console.log("❌ Invalid file type:", file.type)
+      console.log("Invalid file type:", file.type)
       return NextResponse.json({
         error: 'Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG files are allowed.'
       }, { status: 400, headers })
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     // Validate file size (10MB max)
     const maxSize = 10 * 1024 * 1024 // 10MB in bytes
     if (file.size > maxSize) {
-      console.log("❌ File too large:", file.size)
+      console.log("File too large:", file.size)
       return NextResponse.json({
         error: 'File too large. Maximum size is 10MB.'
       }, { status: 400, headers })
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
 
-      console.log("📤 Uploading to Payload...")
+      console.log("Uploading to Payload...")
 
       const uploadedMedia = await payload.create({
         collection: 'media',
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
         overrideAccess: true,
       })
 
-      console.log("✅ Media uploaded successfully:", {
+      console.log("Media uploaded successfully:", {
         id: uploadedMedia.id,
         filename: (uploadedMedia as any).filename,
         url: (uploadedMedia as any).url
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
       }, { headers })
       
     } catch (uploadError) {
-      console.error("💥 Upload failed:", uploadError)
+      console.error("Upload failed:", uploadError)
       
       let errorMessage = "Failed to upload file"
       if (uploadError instanceof Error) {
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('💥 Unexpected error in media upload:', error)
+    console.error('Unexpected error in media upload:', error)
     return NextResponse.json({
       success: false,
       error: 'Internal server error during file upload',

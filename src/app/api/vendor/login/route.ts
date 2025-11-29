@@ -7,7 +7,7 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// ✅ Handle preflight OPTIONS request
+// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -16,17 +16,17 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("🚀 Processing vendor login request...")
+  console.log("Processing vendor login request...")
 
   try {
     // Parse request body
     const body = await request.json()
     const { email, password } = body
 
-    console.log("📧 Login attempt for email:", email)
+    console.log("Login attempt for email:", email)
 
     if (!email || !password) {
-      console.error("❌ Missing email or password")
+      console.error("Missing email or password")
       return NextResponse.json(
         { error: "Email and password are required" },
         {
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Payload client
-    console.log("🔄 Getting Payload client...")
+    console.log("Getting Payload client...")
     const payload = await getPayloadClient()
-    console.log("✅ Payload client obtained")
+    console.log("Payload client obtained")
 
     // First, let's check if the vendor exists
-    console.log("🔍 Checking if vendor exists in database...")
+    console.log("Checking if vendor exists in database...")
     try {
       const existingVendor = await payload.find({
         collection: "vendors",
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (existingVendor.docs.length === 0) {
-        console.error("❌ No vendor found with email:", email)
+        console.error("No vendor found with email:", email)
         return NextResponse.json(
           { error: "No vendor account found with this email address. Please register first." },
           {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       }
 
       const vendor = existingVendor.docs[0]
-      console.log("✅ Vendor found:", {
+      console.log("Vendor found:", {
         id: vendor.id,
         email: vendor.email,
         storeName: vendor.storeName,
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
       // Check vendor status before attempting login
       if (vendor.status === "pending") {
-        console.log("⏳ Vendor status: pending")
+        console.log("Vendor status: pending")
         return NextResponse.json(
           {
             error: "Account pending approval",
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (vendor.status === "rejected") {
-        console.log("❌ Vendor status: rejected")
+        console.log("Vendor status: rejected")
         return NextResponse.json(
           {
             error: "Account rejected",
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       }
 
     } catch (findError: any) {
-      console.error("❌ Error checking vendor existence:", findError.message)
+      console.error("Error checking vendor existence:", findError.message)
       return NextResponse.json(
         { error: "Database error while checking vendor" },
         {
@@ -116,17 +116,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Attempt login
-    console.log("🔐 Attempting login with Payload...")
+    console.log("Attempting login with Payload...")
     const result = await payload.login({
       collection: "vendors",
       data: { email, password },
     })
 
-    console.log("✅ Login successful, user authenticated")
+    console.log("Login successful, user authenticated")
 
     // Check user status
     if (result?.user?.status === "pending") {
-      console.log("⏳ User status: pending")
+      console.log("User status: pending")
       return NextResponse.json(
         {
           error: "Account pending approval",
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (result?.user?.status === "rejected") {
-      console.log("❌ User status: rejected")
+      console.log("User status: rejected")
       return NextResponse.json(
         {
           error: "Account rejected",
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("✅ Login successful, user status approved")
+    console.log("Login successful, user status approved")
 
     // Return success response
     return NextResponse.json(
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
       }
     )
   } catch (err: any) {
-    console.error("❌ Vendor login error:", {
+    console.error("Vendor login error:", {
       message: err.message,
       stack: err.stack,
       name: err.name
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
     // Handle specific Payload errors
     if (err.message?.includes('Invalid login credentials') || 
         err.message?.includes('email or password provided is incorrect')) {
-      console.log("🔑 Authentication failed - incorrect credentials")
+      console.log("Authentication failed - incorrect credentials")
       return NextResponse.json(
         { 
           error: "Invalid email or password",
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (err.message?.includes('Cannot overwrite')) {
-      console.error("🔄 Model overwrite error detected - this is a Payload configuration issue")
+      console.error("Model overwrite error detected - this is a Payload configuration issue")
       return NextResponse.json(
         { error: "Server configuration error. Please restart the backend server." },
         {

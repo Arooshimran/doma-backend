@@ -273,7 +273,7 @@ export interface Product {
    */
   title: string;
   /**
-   * This will be used in the product URL (e.g., yourstore.com/products/this-slug).
+   * This will be used in the product URL (e.g., yourstore.com/products/this-slug). Auto-generated from title.
    */
   slug: string;
   /**

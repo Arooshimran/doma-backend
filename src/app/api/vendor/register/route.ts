@@ -7,9 +7,9 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// ✅ Handle preflight OPTIONS request
+// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
-  console.log("📋 Handling OPTIONS preflight request for registration")
+  console.log("Handling OPTIONS preflight request for registration")
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(request),
@@ -17,14 +17,14 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("\n🚀 === VENDOR REGISTRATION ATTEMPT STARTED ===")
+  console.log("\n=== VENDOR REGISTRATION ATTEMPT STARTED ===")
 
   try {
     // Parse request body
-    console.log("📥 Parsing registration data...")
+    console.log("Parsing registration data...")
     const vendorData = await request.json()
     
-    console.log("📋 Registration request details:", {
+    console.log("Registration request details:", {
       email: vendorData.email,
       storeName: vendorData.storeName,
       hasPassword: !!vendorData.password,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!vendorData.email || !vendorData.password || !vendorData.storeName) {
-      console.error("❌ Missing required fields")
+      console.error("Missing required fields")
       return NextResponse.json(
         { 
           error: "Missing required fields",
@@ -46,12 +46,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Get Payload client
-    console.log("🔄 Getting Payload client...")
+    console.log("Getting Payload client...")
     const payload = await getPayloadClient()
-    console.log("✅ Payload client obtained")
+    console.log("Payload client obtained")
 
     // Check if vendor already exists
-    console.log("🔍 Checking if vendor already exists...")
+    console.log("Checking if vendor already exists...")
     try {
       const existingVendor = await payload.find({
         collection: "vendors",
@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       })
 
       if (existingVendor.docs.length > 0) {
-        console.log("❌ Vendor already exists with this email")
+        console.log("Vendor already exists with this email")
         return NextResponse.json(
           { 
             error: "Email already registered",
@@ -73,9 +73,9 @@ export async function POST(request: NextRequest) {
         )
       }
 
-      console.log("✅ Email is available")
+      console.log("Email is available")
     } catch (findError: any) {
-      console.error("❌ Error checking existing vendor:", findError.message)
+      console.error("Error checking existing vendor:", findError.message)
       return NextResponse.json(
         { error: "Database error while checking existing vendor" },
         { status: 500, headers: corsHeaders(request) }
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         .trim(),
     }
 
-    console.log("📦 Prepared vendor data:", {
+    console.log("Prepared vendor data:", {
       email: vendorPayload.email,
       storeName: vendorPayload.storeName,
       slug: vendorPayload.slug,
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Create new vendor
-    console.log("🏗️ Creating new vendor...")
+    console.log("Creating new vendor...")
     const startTime = Date.now()
     
     const vendor = await payload.create({
@@ -114,14 +114,14 @@ export async function POST(request: NextRequest) {
     })
     
     const endTime = Date.now()
-    console.log(`✅ Vendor created successfully in ${endTime - startTime}ms:`, {
+    console.log(`Vendor created successfully in ${endTime - startTime}ms:`, {
       id: vendor.id,
       email: vendor.email,
       storeName: vendor.storeName,
       status: vendor.status
     })
 
-    console.log("🎉 === VENDOR REGISTRATION COMPLETED SUCCESSFULLY ===\n")
+    console.log("=== VENDOR REGISTRATION COMPLETED SUCCESSFULLY ===\n")
 
     // Return success response immediately
     return NextResponse.json(
@@ -144,7 +144,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error: any) {
-    console.error("💥 === VENDOR REGISTRATION FAILED ===")
+    console.error("=== VENDOR REGISTRATION FAILED ===")
     console.error("Registration error details:", {
       message: error.message,
       name: error.name,
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
         error.code === 11000) {
       errorMessage = "Email already registered"
       statusCode = 409
-      console.log("🔄 Duplicate email error detected")
+      console.log("Duplicate email error detected")
     }
     // Handle validation errors
     else if (error.message?.includes('validation') || 
@@ -173,28 +173,28 @@ export async function POST(request: NextRequest) {
       errorDetails = {
         validationErrors: error.details || error.errors || "Invalid data provided"
       }
-      console.log("📝 Validation error detected")
+      console.log("Validation error detected")
     }
     // Handle required field errors
     else if (error.message?.includes('required') || 
              error.message?.includes('Path `') && error.message?.includes('` is required')) {
       errorMessage = "Missing required fields"
       statusCode = 400
-      console.log("📋 Required field error detected")
+      console.log("Required field error detected")
     }
     // Handle Payload-specific errors
     else if (error.message?.includes('Cannot overwrite')) {
       errorMessage = "Server restart required. Please restart your backend server."
-      console.log("💡 SOLUTION: Restart your Next.js development server")
+      console.log("SOLUTION: Restart your Next.js development server")
     }
     // Handle database connection errors
     else if (error.message?.includes('connection') || 
              error.message?.includes('ECONNREFUSED')) {
       errorMessage = "Database connection error"
-      console.log("💡 SOLUTION: Check your database connection")
+      console.log("SOLUTION: Check your database connection")
     }
 
-    console.log("❌ === END REGISTRATION ERROR ===\n")
+    console.log("=== END REGISTRATION ERROR ===\n")
 
     return NextResponse.json(
       { 

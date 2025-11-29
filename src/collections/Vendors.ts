@@ -39,7 +39,7 @@ const Vendors: CollectionConfig = {
 
           return res.status(200).json(result)
         } catch (err: any) {
-          console.error("❌ Vendor login failed:", err)
+          console.error("Vendor login failed:", err)
           return res.status(401).json({
             message: err?.message || "Login failed",
           })
@@ -61,7 +61,7 @@ const Vendors: CollectionConfig = {
     },
   },
 
-  // ✅ Enhanced hooks for email notifications
+  // Enhanced hooks for email notifications
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {
@@ -76,18 +76,18 @@ const Vendors: CollectionConfig = {
       async ({ doc, req, operation, previousDoc }) => {
         // Send email when vendor status changes (only when changed via admin panel)
         if (operation === "update" && doc.status !== previousDoc?.status) {
-          console.log(`📧 Vendor status changed: ${previousDoc?.status} → ${doc.status}`)
+          console.log(`Vendor status changed: ${previousDoc?.status} → ${doc.status}`)
           
           try {
             if (doc.status === "approved") {
-              console.log("✅ Sending approval email via hook...")
+              console.log("Sending approval email via hook...")
               await sendVendorApprovalEmail(req.payload, doc)
             } else if (doc.status === "rejected") {
-              console.log("❌ Sending rejection email via hook...")
+              console.log("Sending rejection email via hook...")
               await sendVendorRejectionEmail(req.payload, doc)
             }
           } catch (emailError: any) {
-            console.error("❌ Hook email error:", emailError.message)
+            console.error("Hook email error:", emailError.message)
             // Don't fail the update if email fails
           }
         }
@@ -115,7 +115,7 @@ const Vendors: CollectionConfig = {
       ],
       defaultValue: "pending",
       required: true,
-      // ✅ Add admin-only access control
+      // Add admin-only access control
       access: {
         update: ({ req }) => {
           // Only users (admins) can change status
@@ -166,7 +166,7 @@ const Vendors: CollectionConfig = {
         ]},
       ],
     },
-    // ✅ Enhanced approval/rejection tracking
+    // Enhanced approval/rejection tracking
    
     {
       name: "approvalNote",
@@ -189,7 +189,7 @@ const Vendors: CollectionConfig = {
     },
   ],
 
-  // ✅ Control who can access what
+  // Control who can access what
   access: {
     create: () => true, // Anyone can register as vendor
     read: ({ req }) => {
@@ -211,9 +211,9 @@ const Vendors: CollectionConfig = {
   },
 }
 
-// ✅ Enhanced email notification functions using Payload's email system
+// Enhanced email notification functions using Payload's email system
 async function sendVendorApprovalEmail(payload: any, vendor: any) {
-  console.log(`📧 Sending approval email to ${vendor.email}`)
+  console.log(`Sending approval email to ${vendor.email}`)
   
   try {
     await payload.sendEmail({
@@ -243,22 +243,22 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
                 Login to Dashboard
               </a>
             </p>
-            <p>Welcome to the marketplace! 🎊</p>
+            <p>Welcome to the marketplace!</p>
           </div>
         </div>
       `,
       text: `Congratulations! Your vendor application has been approved! You can now log in at: http://localhost:3001/vendor/login`
     })
     
-    console.log("✅ Approval email sent successfully")
+    console.log("Approval email sent successfully")
   } catch (error: any) {
-    console.error("❌ Failed to send approval email:", error.message)
+    console.error("Failed to send approval email:", error.message)
     throw error
   }
 }
 
 async function sendVendorRejectionEmail(payload: any, vendor: any) {
-  console.log(`📧 Sending rejection email to ${vendor.email}`)
+  console.log(`Sending rejection email to ${vendor.email}`)
   
   try {
     await payload.sendEmail({
@@ -301,9 +301,9 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
       text: `Update on your vendor application. We are unable to approve your application at this time. ${vendor.rejectionReason ? `Reason: ${vendor.rejectionReason}` : ''} You can reapply at: http://localhost:3001/vendor/register`
     })
     
-    console.log("✅ Rejection email sent successfully")
+    console.log("Rejection email sent successfully")
   } catch (error: any) {
-    console.error("❌ Failed to send rejection email:", error.message)
+    console.error("Failed to send rejection email:", error.message)
     throw error
   }
 }

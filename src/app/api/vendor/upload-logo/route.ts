@@ -36,31 +36,31 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 POST /api/vendor/upload-logo - Starting...")
+    console.log("POST /api/vendor/upload-logo - Starting...")
     
     // Verify vendor authentication
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("❌ Unauthorized - Invalid or missing token")
+      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
     
-    console.log("✅ Vendor authenticated:", vendorId)
-    console.log("📋 Request headers:", Object.fromEntries(request.headers))
-    console.log("📋 Request method:", request.method)
-    console.log("📋 Request URL:", request.url)
+    console.log("Vendor authenticated:", vendorId)
+    console.log("Request headers:", Object.fromEntries(request.headers))
+    console.log("Request method:", request.method)
+    console.log("Request URL:", request.url)
 
     let formData
     try {
-      console.log("📤 Parsing form data...")
+      console.log("Parsing form data...")
       formData = await request.formData()
-      console.log("✅ Form data parsed successfully")
-      console.log("📋 Form data keys:", Array.from(formData.keys()))
+      console.log("Form data parsed successfully")
+      console.log("Form data keys:", Array.from(formData.keys()))
     } catch (formDataError) {
-      console.error("💥 Failed to parse form data:", formDataError)
+      console.error("Failed to parse form data:", formDataError)
       return NextResponse.json(
         { 
           error: 'Failed to parse form data',
@@ -73,14 +73,14 @@ export async function POST(request: NextRequest) {
     const file = formData.get('file') as File
 
     if (!file) {
-      console.log("❌ No file provided")
+      console.log("No file provided")
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400, headers }
       )
     }
     
-    console.log("📎 File details:", {
+    console.log("File details:", {
       name: file.name,
       type: file.type,
       size: file.size
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
     if (!allowedTypes.includes(file.type)) {
-      console.log("❌ Invalid file type:", file.type)
+      console.log("Invalid file type:", file.type)
       return NextResponse.json(
         { error: 'Invalid file type. Only JPEG, PNG, GIF, and WebP are allowed.' },
         { status: 400, headers }
@@ -99,14 +99,14 @@ export async function POST(request: NextRequest) {
     // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024 // 5MB
     if (file.size > maxSize) {
-      console.log("❌ File too large:", file.size)
+      console.log("File too large:", file.size)
       return NextResponse.json(
         { error: 'File too large. Maximum size is 5MB.' },
         { status: 400, headers }
       )
     }
 
-    console.log("✅ File validation passed")
+    console.log("File validation passed")
     
     const payload = await getPayloadClient()
 
@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split('.').pop()
     const fileName = `vendor-logo-${vendorId}-${timestamp}.${fileExtension}`
     
-    console.log("📤 Uploading file:", fileName)
+    console.log("Uploading file:", fileName)
 
     try {
       // Upload to Payload Media collection
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
         overrideAccess: true,
       })
       
-      console.log("✅ File uploaded successfully:", {
+      console.log("File uploaded successfully:", {
         id: mediaDoc.id,
         url: (mediaDoc as any).url,
       })
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       }, { status: 201, headers })
       
     } catch (uploadError) {
-      console.error('💥 Payload upload error:', uploadError)
+      console.error('Payload upload error:', uploadError)
       return NextResponse.json(
         { 
           error: 'Failed to upload to media collection',
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
       )
     }
   } catch (error) {
-    console.error('💥 Error uploading logo:', error)
+    console.error('Error uploading logo:', error)
     return NextResponse.json(
       { 
         error: 'Failed to upload logo',

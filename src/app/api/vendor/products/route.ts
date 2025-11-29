@@ -10,18 +10,18 @@ const corsHeaders = (request?: NextRequest) =>
 // Helper function to extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
   try {
-    console.log("🔍 Starting token verification...")
+    console.log("Starting token verification...")
     
     const authHeader = request.headers.get("Authorization")
-    console.log("📋 Auth header:", authHeader ? `${authHeader.substring(0, 20)}...` : "Missing")
+    console.log("Auth header:", authHeader ? `${authHeader.substring(0, 20)}...` : "Missing")
     
     if (!authHeader || !authHeader.startsWith("JWT ")) {
-      console.log("❌ No valid Authorization header found")
+      console.log("No valid Authorization header found")
       return null
     }
 
     const token = authHeader.substring(4)
-    console.log("🎫 Token extracted, length:", token.length)
+    console.log("Token extracted, length:", token.length)
 
     try {
       // Simple JWT decode without verification (since the token is already validated by your auth system)
@@ -29,7 +29,7 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
       const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf-8')
       const decoded = JSON.parse(decodedPayload)
       
-      console.log("✅ Token decoded successfully:", { 
+      console.log("Token decoded successfully:", { 
         id: decoded.id, 
         email: decoded.email,
         collection: decoded.collection 
@@ -37,17 +37,17 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
       
       // Check if this is a vendor token
       if (decoded.collection !== 'vendors') {
-        console.log("❌ Token is not for vendors collection")
+        console.log("Token is not for vendors collection")
         return null
       }
       
       return decoded.id
     } catch (decodeError) {
-      console.log("❌ JWT decode failed:", decodeError)
+      console.log("JWT decode failed:", decodeError)
       return null
     }
   } catch (error) {
-    console.error("💥 Token verification error:", error)
+    console.error("Token verification error:", error)
     return null
   }
 }
@@ -55,12 +55,12 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
 // Helper function to handle category lookup/creation
 const handleCategory = async (payload: any, categoryName: string): Promise<string | null> => {
   if (!categoryName) {
-    console.log("⚠️ No category provided")
+    console.log("No category provided")
     return null
   }
   
   try {
-    console.log("🔍 Looking up category:", categoryName)
+    console.log("Looking up category:", categoryName)
     
     // First, try to find existing category by name
     const existingCategories = await payload.find({
@@ -74,12 +74,12 @@ const handleCategory = async (payload: any, categoryName: string): Promise<strin
     })
 
     if (existingCategories.docs.length > 0) {
-      console.log("✅ Found existing category:", existingCategories.docs[0].id)
+      console.log("Found existing category:", existingCategories.docs[0].id)
       return existingCategories.docs[0].id
     }
 
     // If not found, create new category
-    console.log("📝 Creating new category:", categoryName)
+    console.log("Creating new category:", categoryName)
     const newCategory = await payload.create({
       collection: 'categories',
       data: {
@@ -89,32 +89,32 @@ const handleCategory = async (payload: any, categoryName: string): Promise<strin
       }
     })
 
-    console.log("✅ Created new category:", newCategory.id)
+    console.log("Created new category:", newCategory.id)
     return newCategory.id
   } catch (error) {
-    console.warn("❌ Category handling failed:", error)
+    console.warn("Category handling failed:", error)
     return null // Return null if category handling fails
   }
 }
 
-// ✅ Handle preflight OPTIONS request
+// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
-  console.log("📋 Handling OPTIONS preflight request for vendor products")
+  console.log("Handling OPTIONS preflight request for vendor products")
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(request),
   })
 }
 
-// ✅ GET - Fetch vendor's products (FIXED VERSION)
+// GET - Fetch vendor's products (FIXED VERSION)
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 GET /api/vendor/products - Starting...")
+    console.log("GET /api/vendor/products - Starting...")
     
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("❌ Unauthorized - Invalid or missing token")
+      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    console.log("✅ Vendor authenticated:", vendorId)
+    console.log("Vendor authenticated:", vendorId)
     
     const payload = await getPayloadClient()
     const { searchParams } = new URL(request.url)
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const status = searchParams.get("status") || "all"
 
-    console.log("📋 Query params:", { page, limit, status })
+    console.log("Query params:", { page, limit, status })
 
     // FIXED: Build query for vendor's products using the correct field reference
     const where: any = {
@@ -147,7 +147,7 @@ export async function GET(request: NextRequest) {
       where.status = { equals: status }
     }
 
-    console.log("🔍 Query where clause:", JSON.stringify(where, null, 2))
+    console.log("Query where clause:", JSON.stringify(where, null, 2))
 
     // FIXED: Use overrideAccess to bypass access control for admin queries
     const products = await payload.find({
@@ -160,8 +160,8 @@ export async function GET(request: NextRequest) {
       overrideAccess: true, // This bypasses the access control for admin/API operations
     })
 
-    console.log("✅ Products fetched successfully:", products.docs.length)
-    console.log("📋 Sample product (if any):", products.docs[0] ? {
+    console.log("Products fetched successfully:", products.docs.length)
+    console.log("Sample product (if any):", products.docs[0] ? {
       id: products.docs[0].id,
       title: products.docs[0].title,
       vendor: products.docs[0].vendor,
@@ -172,7 +172,7 @@ export async function GET(request: NextRequest) {
       headers,
     })
   } catch (error) {
-    console.error("💥 Error fetching vendor products:", error)
+    console.error("Error fetching vendor products:", error)
     return NextResponse.json(
       { 
         error: "Failed to fetch products",
@@ -186,19 +186,19 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// ✅ POST - Create new product (FIXED VERSION FOR YOUR PAYLOAD SCHEMA)
+// POST - Create new product (FIXED VERSION FOR YOUR PAYLOAD SCHEMA)
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 POST /api/vendor/products - Starting...")
+    console.log("POST /api/vendor/products - Starting...")
     
     // Log request details
-    console.log("📋 Request method:", request.method)
-    console.log("📋 Request URL:", request.url)
+    console.log("Request method:", request.method)
+    console.log("Request URL:", request.url)
 
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("❌ Unauthorized - Invalid or missing token")
+      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -208,15 +208,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("✅ Vendor authenticated:", vendorId)
+    console.log("Vendor authenticated:", vendorId)
 
     // Parse request body
     let data
     try {
       data = await request.json()
-      console.log("📋 Request body:", JSON.stringify(data, null, 2))
+      console.log("Request body:", JSON.stringify(data, null, 2))
     } catch (parseError) {
-      console.log("❌ Failed to parse request body:", parseError)
+      console.log("Failed to parse request body:", parseError)
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         {
@@ -235,7 +235,7 @@ export async function POST(request: NextRequest) {
     // Check for price in different possible structures
     const price = data.price || pricing?.price || pricingDetails?.sellingPrice
     
-    console.log("🔍 Validating fields:", { 
+    console.log("Validating fields:", { 
       title, 
       description, 
       price,
@@ -244,7 +244,7 @@ export async function POST(request: NextRequest) {
     })
     
     if (!title || !description || price === undefined || price === null) {
-      console.log("❌ Missing required fields")
+      console.log("Missing required fields")
       return NextResponse.json(
         { error: "Missing required fields: title, Description (or shortDescription), price" },
         {
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
     // Validate price is a positive number
     const numericPrice = Number(price)
     if (isNaN(numericPrice) || numericPrice <= 0) {
-      console.log("❌ Invalid price:", price)
+      console.log("Invalid price:", price)
       return NextResponse.json(
         { error: "Price must be a positive number" },
         {
@@ -267,11 +267,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("✅ Validation passed")
+    console.log("Validation passed")
 
     // Get Payload client
     const payload = await getPayloadClient()
-    console.log("✅ Payload client obtained")
+    console.log("Payload client obtained")
 
     // Handle category lookup/creation
     let categoryId = null
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
       ...(data.colors && { colors: data.colors }),
     }
 
-    console.log("📋 Product data to create:", JSON.stringify(productData, null, 2))
+    console.log("Product data to create:", JSON.stringify(productData, null, 2))
 
     try {
       // FIXED: Use overrideAccess to bypass access control
@@ -327,7 +327,7 @@ export async function POST(request: NextRequest) {
         overrideAccess: true, // This bypasses access control for API operations
       })
 
-      console.log("✅ Product created successfully:", product.id)
+      console.log("Product created successfully:", product.id)
 
       return NextResponse.json(
         {
@@ -341,12 +341,12 @@ export async function POST(request: NextRequest) {
         }
       )
     } catch (createError) {
-      console.error("💥 Product creation failed:", createError)
+      console.error("Product creation failed:", createError)
       
       // Log more details about the creation error
       if (createError instanceof Error) {
-        console.error("💥 Error message:", createError.message)
-        console.error("💥 Error stack:", createError.stack)
+        console.error(" Error message:", createError.message)
+        console.error("Error stack:", createError.stack)
       }
       
       // Provide more specific error messages based on the error type
@@ -375,12 +375,12 @@ export async function POST(request: NextRequest) {
       )
     }
   } catch (error) {
-    console.error("💥 Unexpected error in POST /api/vendor/products:", error)
+    console.error("Unexpected error in POST /api/vendor/products:", error)
     
     // Log full error details
     if (error instanceof Error) {
-      console.error("💥 Error message:", error.message)
-      console.error("💥 Error stack:", error.stack)
+      console.error("Error message:", error.message)
+      console.error("Error stack:", error.stack)
     }
     
     return NextResponse.json(
@@ -396,16 +396,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// ✅ PUT - Update existing product (ENHANCED VERSION)
+// PUT - Update existing product (ENHANCED VERSION)
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("🚀 PUT /api/vendor/products - Starting update...")
+    console.log("PUT /api/vendor/products - Starting update...")
     
     // Verify vendor authentication
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("❌ Unauthorized - Invalid or missing token")
+      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -415,24 +415,24 @@ export async function PUT(request: NextRequest) {
       )
     }
 
-    console.log("✅ Vendor authenticated:", vendorId)
+    console.log("Vendor authenticated:", vendorId)
     
     const payload = await getPayloadClient()
     const updateData = await request.json()
     
-    console.log("📝 Update data received:", JSON.stringify(updateData, null, 2))
+    console.log("Update data received:", JSON.stringify(updateData, null, 2))
 
     const id = updateData.id || new URL(request.url).searchParams.get("id")
 
     if (!id) {
-      console.log("❌ Product ID is required")
+      console.log("Product ID is required")
       return NextResponse.json(
         { error: "Product ID is required" },
         { status: 400, headers }
       )
     }
 
-    console.log("🔍 Updating product ID:", id)
+    console.log("Updating product ID:", id)
 
     // First verify that this product belongs to the authenticated vendor
     try {
@@ -455,17 +455,17 @@ export async function PUT(request: NextRequest) {
         : existingProduct.vendor
         
       if (productVendorId !== vendorId) {
-        console.log("❌ Access denied - product belongs to different vendor")
+        console.log("Access denied - product belongs to different vendor")
         return NextResponse.json(
           { error: "Access denied - you can only edit your own products" },
           { status: 403, headers }
         )
       }
 
-      console.log("✅ Product ownership verified")
+      console.log("Product ownership verified")
 
     } catch (verifyError) {
-      console.error("💥 Error verifying product ownership:", verifyError)
+      console.error("Error verifying product ownership:", verifyError)
       return NextResponse.json(
         { error: "Failed to verify product ownership" },
         { status: 500, headers }
@@ -480,7 +480,7 @@ export async function PUT(request: NextRequest) {
       dataToUpdate.category = dataToUpdate.category.id
     }
     
-    console.log("💾 Final update data:", JSON.stringify(dataToUpdate, null, 2))
+    console.log("Final update data:", JSON.stringify(dataToUpdate, null, 2))
 
     // Perform the update
     const updatedProduct = await payload.update({
@@ -490,7 +490,7 @@ export async function PUT(request: NextRequest) {
       overrideAccess: true, // Bypass access control for API operations
     })
 
-    console.log("✅ Product updated successfully:", updatedProduct.id)
+    console.log("Product updated successfully:", updatedProduct.id)
 
     return NextResponse.json(
       { 
@@ -501,7 +501,7 @@ export async function PUT(request: NextRequest) {
       { status: 200, headers }
     )
   } catch (error) {
-    console.error("💥 Error updating product:", error)
+    console.error("Error updating product:", error)
     
     // Enhanced error handling
     let errorMessage = "Failed to update product"
@@ -530,7 +530,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// ✅ DELETE - Delete product (FIXED VERSION)
+// DELETE - Delete product (FIXED VERSION)
 export async function DELETE(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
@@ -557,7 +557,7 @@ export async function DELETE(request: NextRequest) {
       { status: 200, headers }
     );
   } catch (error) {
-    console.error("💥 Error deleting product:", error);
+    console.error("Error deleting product:", error);
     return NextResponse.json(
       { error: "Failed to delete product", details: error instanceof Error ? error.message : "Unknown error" },
       { status: 500, headers }
