@@ -321,6 +321,9 @@ export interface Product {
   category?: (string | null) | Category;
   status?: ('draft' | 'published' | 'pending' | 'rejected' | 'out-of-stock') | null;
   featured?: boolean | null;
+  /**
+   * Automatically assigned to the vendor who created this product
+   */
   vendor: string | Vendor;
   size?: ('S' | 'M' | 'L' | 'XL') | null;
   colors?:

@@ -302,7 +302,10 @@ const Products: CollectionConfig = {
       type: "relationship",
       relationTo: "vendors",
       required: true,
-      admin: { hidden: true },
+      admin: { 
+        readOnly: true,
+        description: "Automatically assigned to the vendor who created this product"
+      },
       hooks: {
         beforeChange: [
           ({ req, operation }) => {
