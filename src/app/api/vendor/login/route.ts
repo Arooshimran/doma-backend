@@ -168,6 +168,7 @@ export async function POST(request: NextRequest) {
           email: result.user.email,
           storeName: result.user.storeName,
           status: result.user.status,
+          role: 'vendor',
         },
       },
       {
