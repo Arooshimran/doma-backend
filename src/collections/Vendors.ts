@@ -1,5 +1,11 @@
 import type { CollectionConfig } from "payload"
 import { isAdmin, isAdminOrVendor, ownRecord } from "@/lib/access-helpers"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
+
+const corsHeaders = (request?: any) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
 
 const Vendors: CollectionConfig = {
   slug: "vendors",
@@ -9,13 +15,10 @@ const Vendors: CollectionConfig = {
     {
       path: "/login",
       method: "post",
-  handler: (async (req: import('payload').PayloadRequest, res: import('express').Response) => {
+      handler: (async (req: import('payload').PayloadRequest, res: import('express').Response) => {
         try {
-
-          // Ensure req.body is a plain object with email and password
-
-          let email: string | undefined = undefined;
-          let password: string | undefined = undefined;
+          let email: string | undefined = undefined
+          let password: string | undefined = undefined
           if (
             req.body &&
             typeof req.body === 'object' &&
@@ -23,21 +26,32 @@ const Vendors: CollectionConfig = {
             'email' in req.body &&
             'password' in req.body
           ) {
-            email = (req.body as any).email;
-            password = (req.body as any).password;
+            email = (req.body as any).email
+            password = (req.body as any).password
           }
 
           if (typeof email !== 'string' || typeof password !== 'string') {
-            throw new Error('Email and password are required and must be strings');
+            throw new Error('Email and password are required and must be strings')
           }
 
           const result = await req.payload.login({
             collection: "vendors",
             data: { email, password },
             req,
-          });
+          })
 
-          return res.status(200).json(result)
+          return res.status(200).json({
+            success: true,
+            token: result.token,
+            user: {
+              id: result.user.id,
+              email: result.user.email,
+              storeName: result.user.storeName,
+              status: result.user.status,
+              role: "vendor",
+            },
+            headers: corsHeaders(req),
+          })
         } catch (err: any) {
           console.error("Vendor login failed:", err)
           return res.status(401).json({
