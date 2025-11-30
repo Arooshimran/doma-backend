@@ -5,8 +5,40 @@ import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
 const corsHeaders = (request?: NextRequest) =>
   buildCorsHeadersFromRequest(request, {
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   })
+
+// Helper function to extract vendor ID from JWT token
+const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
+  try {
+    const authHeader = request.headers.get("Authorization")
+    
+    if (!authHeader || !authHeader.startsWith("JWT ")) {
+      return null
+    }
+
+    const token = authHeader.substring(4)
+
+    try {
+      // Simple JWT decode without verification
+      const base64Payload = token.split('.')[1]
+      const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf-8')
+      const decoded = JSON.parse(decodedPayload)
+      
+      // Check if this is a vendor token
+      if (decoded.collection !== 'vendors') {
+        return null
+      }
+      
+      return decoded.id
+    } catch (decodeError) {
+      return null
+    }
+  } catch (error) {
+    console.error("Token verification error:", error)
+    return null
+  }
+}
 
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -15,6 +47,111 @@ export async function OPTIONS(request: NextRequest) {
   })
 }
 
+// GET - Fetch vendor's orders
+export async function GET(request: NextRequest) {
+  const headers = corsHeaders(request)
+  try {
+    console.log("GET /api/orders - Starting...")
+    
+    const vendorId = await getVendorIdFromToken(request)
+    if (!vendorId) {
+      console.log("Unauthorized - Invalid or missing token")
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid or missing token" },
+        {
+          status: 401,
+          headers,
+        }
+      )
+    }
+
+    console.log("Vendor authenticated:", vendorId)
+    
+    const payload = await getPayloadClient()
+    const { searchParams } = new URL(request.url)
+    
+    const page = Number.parseInt(searchParams.get("page") || "1")
+    const limit = Number.parseInt(searchParams.get("limit") || "10")
+    const status = searchParams.get("status") || "all"
+
+    console.log("Query params:", { page, limit, status })
+
+    // First, get all products belonging to this vendor
+    const vendorProducts = await payload.find({
+      collection: "products",
+      where: {
+        vendor: {
+          equals: vendorId,
+        },
+      },
+      limit: 1000, // Get all vendor products
+      overrideAccess: true,
+    })
+
+    const vendorProductIds = vendorProducts.docs.map((p: any) => p.id)
+    console.log("Vendor has", vendorProductIds.length, "products")
+
+    if (vendorProductIds.length === 0) {
+      // No products = no orders
+      return NextResponse.json({
+        docs: [],
+        totalDocs: 0,
+        limit,
+        page,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+      }, {
+        headers,
+      })
+    }
+
+    // Build query to find orders containing vendor's products
+    const where: any = {
+      "items.product": {
+        in: vendorProductIds,
+      },
+    }
+
+    // Filter by status if specified
+    if (status !== "all") {
+      where.orderStatus = { equals: status }
+    }
+
+    console.log("Query where clause:", JSON.stringify(where, null, 2))
+
+    // Fetch orders with vendor's products
+    const orders = await payload.find({
+      collection: "orders",
+      where,
+      page,
+      limit,
+      sort: "-createdAt",
+      depth: 2, // Populate related fields
+      overrideAccess: true,
+    })
+
+    console.log("Orders fetched successfully:", orders.docs.length)
+
+    return NextResponse.json(orders, {
+      headers,
+    })
+  } catch (error) {
+    console.error("Error fetching vendor orders:", error)
+    return NextResponse.json(
+      { 
+        error: "Failed to fetch orders",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      {
+        status: 500,
+        headers,
+      }
+    )
+  }
+}
+
+// POST - Create new order
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
@@ -128,4 +265,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
