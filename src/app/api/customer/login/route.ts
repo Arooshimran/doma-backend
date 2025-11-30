@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
           Name: loginResult.user.Name, // Collection uses "Name" (capital N, single field)
           phone: loginResult.user.phone,
           status: loginResult.user.status,
+          role: "customer",
         }
       },
       {

@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
         email: vendor.email,
         storeName: vendor.storeName,
         status: vendor.status,
-        hasPassword: !!vendor.password
+        hasPassword: !!vendor.password,
+        role: vendor.role,
       })
 
       // Check vendor status before attempting login
