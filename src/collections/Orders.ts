@@ -174,7 +174,6 @@ const Orders: CollectionConfig = {
           name: "total",
           label: "Line Total",
           type: "number",
-          required: true,
           admin: { readOnly: true },
         },
         {

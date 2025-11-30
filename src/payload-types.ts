@@ -207,6 +207,7 @@ export interface User {
  */
 export interface Customer {
   id: string;
+  role?: 'customer' | null;
   googleId?: string | null;
   Name?: string | null;
   phone?: string | null;
@@ -500,7 +501,7 @@ export interface Order {
      * Auto-filled from product pricing at time of purchase
      */
     price?: number | null;
-    total: number;
+    total?: number | null;
     status?: ('pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled') | null;
     id?: string | null;
   }[];
@@ -700,6 +701,7 @@ export interface UsersSelect<T extends boolean = true> {
  * via the `definition` "customers_select".
  */
 export interface CustomersSelect<T extends boolean = true> {
+  role?: T;
   googleId?: T;
   Name?: T;
   phone?: T;
