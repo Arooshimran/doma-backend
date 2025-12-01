@@ -96,6 +96,36 @@ export async function POST(request: NextRequest) {
 
     console.log("Customer created successfully:", newCustomer.email)
 
+    // Create empty cart for the new customer
+    try {
+      await payload.create({
+        collection: "carts",
+        data: {
+          userId: newCustomer.id,
+          items: [],
+        },
+      })
+      console.log("Empty cart created for customer:", newCustomer.id)
+    } catch (cartError) {
+      console.error("Failed to create cart for new customer:", cartError)
+      // Continue even if cart creation fails
+    }
+
+    // Create empty wishlist for the new customer
+    try {
+      await payload.create({
+        collection: "wishlists",
+        data: {
+          customer: newCustomer.id,
+          products: [],
+        },
+      })
+      console.log("Empty wishlist created for customer:", newCustomer.id)
+    } catch (wishlistError) {
+      console.error("Failed to create wishlist for new customer:", wishlistError)
+      // Continue even if wishlist creation fails
+    }
+
     // Automatically log in the new customer
     const loginResult = await payload.login({
       collection: "customers",
