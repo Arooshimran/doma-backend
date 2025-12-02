@@ -209,7 +209,9 @@ export interface Customer {
   id: string;
   role?: 'customer' | null;
   googleId?: string | null;
-  Name?: string | null;
+  firebaseUid?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
   phone?: string | null;
   addresses?:
     | {
@@ -703,7 +705,9 @@ export interface UsersSelect<T extends boolean = true> {
 export interface CustomersSelect<T extends boolean = true> {
   role?: T;
   googleId?: T;
-  Name?: T;
+  firebaseUid?: T;
+  firstName?: T;
+  lastName?: T;
   phone?: T;
   addresses?:
     | T
