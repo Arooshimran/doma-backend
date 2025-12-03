@@ -146,7 +146,16 @@ export async function PUT(request: NextRequest) {
     
     console.log("Vendor authenticated:", vendorId)
     
-    const body = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch (jsonError) {
+      console.error("Error parsing JSON body:", jsonError)
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400, headers }
+      )
+    }
     console.log("Update data received:", JSON.stringify(body, null, 2))
     
     // Validate required fields

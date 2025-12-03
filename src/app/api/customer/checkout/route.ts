@@ -1,0 +1,255 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { getPayloadClient } from "@/lib/payload-client"
+import { generateOrderNumber } from "@/lib/utils"
+import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
+import { COLLECTION_SLUGS } from "@/collections/shared-types"
+import { findCartByUserId } from "@/lib/cart-service"
+import { resolveRelationId } from "@/lib/cart-utils"
+
+const corsHeaders = (request?: NextRequest) =>
+  buildCorsHeadersFromRequest(request, {
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+  })
+
+// Helper: extract customer ID from JWT token
+const getCustomerIdFromToken = async (request: NextRequest): Promise<string | null> => {
+  const authHeader = request.headers.get("Authorization")
+  if (!authHeader || !authHeader.startsWith("JWT ")) return null
+  const token = authHeader.substring(4)
+  try {
+    const base64Payload = token.split('.')[1]
+    const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf-8')
+    const decoded = JSON.parse(decodedPayload)
+    if (decoded.collection !== 'customers') return null
+    return decoded.id
+  } catch {
+    return null
+  }
+}
+
+// OPTIONS handler
+export async function OPTIONS(request: NextRequest) {
+  return new NextResponse(null, {
+    status: 204,
+    headers: corsHeaders(request),
+  })
+}
+
+// POST - Process checkout and create order
+export async function POST(request: NextRequest) {
+  const headers = corsHeaders(request)
+  try {
+    console.log("POST /api/customer/checkout - Starting...")
+    
+    const customerId = await getCustomerIdFromToken(request)
+    if (!customerId) {
+      console.log("Unauthorized - Invalid or missing token")
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid or missing token" },
+        { status: 401, headers }
+      )
+    }
+    
+    console.log("Customer authenticated:", customerId)
+    
+    const payload = await getPayloadClient()
+    
+    let body
+    try {
+      body = await request.json()
+    } catch (jsonError) {
+      console.error("Error parsing JSON body:", jsonError)
+      return NextResponse.json(
+        { error: "Invalid JSON body" },
+        { status: 400, headers }
+      )
+    }
+    
+    // Get customer's cart
+    const cart = await findCartByUserId(payload, customerId, 2)
+    
+    if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
+      return NextResponse.json(
+        { error: "Cart is empty" },
+        { status: 400, headers }
+      )
+    }
+    
+    console.log("Cart found with", cart.items.length, "items")
+    
+    // Get shipping address from request body or customer's default address
+    let shippingAddress = body.shippingAddress
+    
+    if (!shippingAddress) {
+      // Try to get default address from customer
+      const customer = await payload.findByID({
+        collection: COLLECTION_SLUGS.CUSTOMERS,
+        id: customerId,
+        overrideAccess: true,
+      })
+      
+      const defaultAddress = customer?.addresses?.find((addr: any) => addr.isDefault)
+      if (defaultAddress) {
+        shippingAddress = {
+          firstName: defaultAddress.label || customer.Name?.split(' ')[0] || '',
+          lastName: customer.Name?.split(' ').slice(1).join(' ') || '',
+          street: defaultAddress.street,
+          city: defaultAddress.city,
+          state: defaultAddress.state || '',
+          country: defaultAddress.country,
+          phone: customer.phone || '',
+        }
+      }
+    }
+    
+    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.country) {
+      return NextResponse.json(
+        { error: "Shipping address is required" },
+        { status: 400, headers }
+      )
+    }
+    
+    // Convert cart items to order items format
+    const orderItems = []
+    for (const cartItem of cart.items) {
+      const productId = resolveRelationId(cartItem.product)
+      if (!productId) continue
+      
+      // Fetch product to get title and vendor
+      const product = await payload.findByID({
+        collection: COLLECTION_SLUGS.PRODUCTS,
+        id: productId,
+        depth: 1,
+        overrideAccess: true,
+      }).catch(() => null)
+      
+      if (!product) {
+        console.warn(`Product ${productId} not found, skipping`)
+        continue
+      }
+      
+      // Check stock availability
+      const availableStock = product?.inventory?.quantity ?? 0
+      const requestedQty = cartItem.quantity || 1
+      
+      if (availableStock < requestedQty) {
+        return NextResponse.json(
+          { 
+            error: `Insufficient stock for ${product.title || 'product'}. Available: ${availableStock}, Requested: ${requestedQty}` 
+          },
+          { status: 400, headers }
+        )
+      }
+      
+      const unitPrice = cartItem.unitPrice || product?.pricing?.discountedPrice || product?.pricing?.price || 0
+      const lineTotal = cartItem.lineTotal || (unitPrice * requestedQty)
+      
+      orderItems.push({
+        product: productId,
+        productTitle: product.title || '',
+        vendor: resolveRelationId(product.vendor) || null,
+        quantity: requestedQty,
+        price: unitPrice,
+        total: lineTotal,
+        status: 'pending',
+      })
+    }
+    
+    if (orderItems.length === 0) {
+      return NextResponse.json(
+        { error: "No valid items in cart" },
+        { status: 400, headers }
+      )
+    }
+    
+    // Calculate totals
+    const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0)
+    const tax = body.tax || 0
+    const shippingCost = body.shippingCost || 0
+    const total = subtotal + tax + shippingCost
+    
+    // Generate order number
+    const orderNumber = generateOrderNumber()
+    
+    // Create order
+    const order = await payload.create({
+      collection: COLLECTION_SLUGS.ORDERS,
+      data: {
+        orderNumber,
+        customer: customerId,
+        orderStatus: 'pending',
+        paymentStatus: body.paymentStatus || 'pending',
+        paymentMethod: body.paymentMethod || null,
+        paymentId: body.paymentId || null,
+        items: orderItems,
+        shippingAddress: {
+          firstName: shippingAddress.firstName || '',
+          lastName: shippingAddress.lastName || '',
+          street: shippingAddress.street,
+          city: shippingAddress.city,
+          state: shippingAddress.state || '',
+          country: shippingAddress.country,
+          phone: shippingAddress.phone || '',
+        },
+        billingAddress: body.billingAddress || null,
+        subtotal: Number(subtotal.toFixed(2)),
+        tax: Number(tax.toFixed(2)),
+        shippingCost: Number(shippingCost.toFixed(2)),
+        total: Number(total.toFixed(2)),
+      },
+      depth: 2,
+      overrideAccess: true,
+    })
+    
+    console.log("Order created successfully:", order.id)
+    
+    // Clear the cart after successful order creation
+    try {
+      await payload.update({
+        collection: COLLECTION_SLUGS.CARTS,
+        id: cart.id,
+        data: {
+          items: [],
+        },
+        overrideAccess: true,
+      })
+      console.log("Cart cleared successfully")
+    } catch (clearError) {
+      console.error("Error clearing cart:", clearError)
+      // Don't fail the request if cart clearing fails
+    }
+    
+    return NextResponse.json(
+      { 
+        success: true, 
+        order,
+        message: "Order created successfully" 
+      },
+      { status: 201, headers }
+    )
+  } catch (error) {
+    console.error("Error processing checkout:", error)
+    
+    let errorMessage = "Failed to process checkout"
+    let statusCode = 500
+    
+    if (error instanceof Error) {
+      if (error.message.includes("stock") || error.message.includes("Insufficient")) {
+        errorMessage = error.message
+        statusCode = 400
+      } else if (error.message.includes("validation")) {
+        errorMessage = `Validation error: ${error.message}`
+        statusCode = 400
+      }
+    }
+    
+    return NextResponse.json(
+      { 
+        error: errorMessage,
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: statusCode, headers }
+    )
+  }
+}
+
