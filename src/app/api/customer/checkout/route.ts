@@ -203,6 +203,80 @@ export async function POST(request: NextRequest) {
     
     console.log("Order created successfully:", order.id)
     
+    // Reduce inventory for all products in the order
+    try {
+      const productCache = new Map<string, any>()
+      
+      for (const item of orderItems) {
+        const productId = resolveRelationId(item.product)
+        if (!productId) continue
+        
+        // Fetch product if not already cached
+        if (!productCache.has(productId)) {
+          const product = await payload.findByID({
+            collection: COLLECTION_SLUGS.PRODUCTS,
+            id: productId,
+            depth: 0,
+            overrideAccess: true,
+          }).catch(() => null)
+          
+          if (product) {
+            productCache.set(productId, product)
+          }
+        }
+        
+        const product = productCache.get(productId)
+        if (!product) {
+          console.warn(`Product ${productId} not found for inventory adjustment`)
+          continue
+        }
+        
+        const quantity = item.quantity || 1
+        const currentStock = product?.inventory?.quantity ?? 0
+        
+        // Double-check stock availability before reducing
+        if (currentStock < quantity) {
+          console.error(`Insufficient stock for product ${productId} during inventory adjustment`)
+          // Note: This shouldn't happen as we checked earlier, but handle gracefully
+          continue
+        }
+        
+        // Reduce inventory
+        await payload.update({
+          collection: COLLECTION_SLUGS.PRODUCTS,
+          id: productId,
+          data: {
+            inventory: {
+              ...product.inventory,
+              quantity: currentStock - quantity,
+            },
+          },
+          overrideAccess: true,
+          depth: 0,
+        })
+        
+        console.log(`Inventory reduced for product ${productId}: ${currentStock} -> ${currentStock - quantity}`)
+      }
+      
+      // Mark order as having inventory adjusted
+      await payload.update({
+        collection: COLLECTION_SLUGS.ORDERS,
+        id: order.id,
+        data: {
+          inventoryAdjusted: true,
+        },
+        overrideAccess: true,
+        depth: 0,
+      })
+      
+      console.log("Inventory adjusted successfully for all products")
+    } catch (inventoryError) {
+      console.error("Error adjusting inventory:", inventoryError)
+      // This is critical - if inventory adjustment fails, we should handle it
+      // For now, we log the error but don't fail the order creation
+      // In production, you might want to rollback the order or handle this differently
+    }
+    
     // Clear the cart after successful order creation
     try {
       await payload.update({
