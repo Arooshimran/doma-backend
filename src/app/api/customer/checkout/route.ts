@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    let orderItems = []
+    const orderItems = []
     
     // Check if items are provided in request body (selected items from frontend)
     if (body.items && Array.isArray(body.items) && body.items.length > 0) {
