@@ -65,18 +65,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Get customer's cart
-    const cart = await findCartByUserId(payload, customerId, 2)
-    
-    if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
-      return NextResponse.json(
-        { error: "Cart is empty" },
-        { status: 400, headers }
-      )
-    }
-    
-    console.log("Cart found with", cart.items.length, "items")
-    
     // Get shipping address from request body or customer's default address
     let shippingAddress = body.shippingAddress
     
@@ -109,58 +97,129 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Convert cart items to order items format
-    const orderItems = []
-    for (const cartItem of cart.items) {
-      const productId = resolveRelationId(cartItem.product)
-      if (!productId) continue
+    let orderItems = []
+    
+    // Check if items are provided in request body (selected items from frontend)
+    if (body.items && Array.isArray(body.items) && body.items.length > 0) {
+      console.log("Processing items from request body:", body.items.length, "items")
       
-      // Fetch product to get title and vendor
-      const product = await payload.findByID({
-        collection: COLLECTION_SLUGS.PRODUCTS,
-        id: productId,
-        depth: 1,
-        overrideAccess: true,
-      }).catch(() => null)
-      
-      if (!product) {
-        console.warn(`Product ${productId} not found, skipping`)
-        continue
+      // Use items from request (selected items from cart page)
+      for (const item of body.items) {
+        const productId = typeof item.product === 'string' ? item.product : item.product?.id
+        
+        if (!productId) {
+          console.warn("Item missing product ID, skipping")
+          continue
+        }
+        
+        // Fetch product to validate and get latest data
+        const product = await payload.findByID({
+          collection: COLLECTION_SLUGS.PRODUCTS,
+          id: productId,
+          depth: 1,
+          overrideAccess: true,
+        }).catch(() => null)
+        
+        if (!product) {
+          console.warn(`Product ${productId} not found, skipping`)
+          continue
+        }
+        
+        // Check stock availability
+        const availableStock = product?.inventory?.quantity ?? 0
+        const requestedQty = item.quantity || 1
+        
+        if (availableStock < requestedQty) {
+          return NextResponse.json(
+            { 
+              error: `Insufficient stock for ${product.title || 'product'}. Available: ${availableStock}, Requested: ${requestedQty}` 
+            },
+            { status: 400, headers }
+          )
+        }
+        
+        const unitPrice = item.unitPrice || item.price || product?.pricing?.discountedPrice || product?.pricing?.price || 0
+        const lineTotal = item.lineTotal || (unitPrice * requestedQty)
+        
+        orderItems.push({
+          product: productId,
+          productTitle: product.title || '',
+          vendor: resolveRelationId(product.vendor) || null,
+          quantity: requestedQty,
+          price: unitPrice,
+          total: lineTotal,
+          status: 'pending',
+        })
       }
+    } else {
+      console.log("No items in request, falling back to cart")
       
-      // Check stock availability
-      const availableStock = product?.inventory?.quantity ?? 0
-      const requestedQty = cartItem.quantity || 1
+      // Fall back to full cart if no items provided
+      const cart = await findCartByUserId(payload, customerId, 2)
       
-      if (availableStock < requestedQty) {
+      if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
         return NextResponse.json(
-          { 
-            error: `Insufficient stock for ${product.title || 'product'}. Available: ${availableStock}, Requested: ${requestedQty}` 
-          },
+          { error: "Cart is empty and no items provided" },
           { status: 400, headers }
         )
       }
       
-      const unitPrice = cartItem.unitPrice || product?.pricing?.discountedPrice || product?.pricing?.price || 0
-      const lineTotal = cartItem.lineTotal || (unitPrice * requestedQty)
+      console.log("Cart found with", cart.items.length, "items")
       
-      orderItems.push({
-        product: productId,
-        productTitle: product.title || '',
-        vendor: resolveRelationId(product.vendor) || null,
-        quantity: requestedQty,
-        price: unitPrice,
-        total: lineTotal,
-        status: 'pending',
-      })
+      // Convert cart items to order items format
+      for (const cartItem of cart.items) {
+        const productId = resolveRelationId(cartItem.product)
+        if (!productId) continue
+        
+        // Fetch product to get title and vendor
+        const product = await payload.findByID({
+          collection: COLLECTION_SLUGS.PRODUCTS,
+          id: productId,
+          depth: 1,
+          overrideAccess: true,
+        }).catch(() => null)
+        
+        if (!product) {
+          console.warn(`Product ${productId} not found, skipping`)
+          continue
+        }
+        
+        // Check stock availability
+        const availableStock = product?.inventory?.quantity ?? 0
+        const requestedQty = cartItem.quantity || 1
+        
+        if (availableStock < requestedQty) {
+          return NextResponse.json(
+            { 
+              error: `Insufficient stock for ${product.title || 'product'}. Available: ${availableStock}, Requested: ${requestedQty}` 
+            },
+            { status: 400, headers }
+          )
+        }
+        
+        const unitPrice = cartItem.unitPrice || product?.pricing?.discountedPrice || product?.pricing?.price || 0
+        const lineTotal = cartItem.lineTotal || (unitPrice * requestedQty)
+        
+        orderItems.push({
+          product: productId,
+          productTitle: product.title || '',
+          vendor: resolveRelationId(product.vendor) || null,
+          quantity: requestedQty,
+          price: unitPrice,
+          total: lineTotal,
+          status: 'pending',
+        })
+      }
     }
     
     if (orderItems.length === 0) {
       return NextResponse.json(
-        { error: "No valid items in cart" },
+        { error: "No valid items to order" },
         { status: 400, headers }
       )
     }
+    
+    console.log("Processing order with", orderItems.length, "valid items")
     
     // Calculate totals
     const subtotal = orderItems.reduce((sum, item) => sum + (item.total || 0), 0)
@@ -171,6 +230,8 @@ export async function POST(request: NextRequest) {
     // Generate order number
     const orderNumber = generateOrderNumber()
     
+    console.log("Creating order with totals:", { subtotal, tax, shippingCost, total })
+    
     // Create order
     const order = await payload.create({
       collection: COLLECTION_SLUGS.ORDERS,
@@ -179,7 +240,7 @@ export async function POST(request: NextRequest) {
         customer: customerId,
         orderStatus: 'pending',
         paymentStatus: body.paymentStatus || 'pending',
-        paymentMethod: body.paymentMethod || null,
+        paymentMethod: body.paymentMethod || 'cod',
         paymentId: body.paymentId || null,
         items: orderItems,
         shippingAddress: {
@@ -208,7 +269,7 @@ export async function POST(request: NextRequest) {
       const productCache = new Map<string, any>()
       
       for (const item of orderItems) {
-        const productId = resolveRelationId(item.product)
+        const productId = typeof item.product === 'string' ? item.product : item.product?.id
         if (!productId) continue
         
         // Fetch product if not already cached
@@ -237,7 +298,6 @@ export async function POST(request: NextRequest) {
         // Double-check stock availability before reducing
         if (currentStock < quantity) {
           console.error(`Insufficient stock for product ${productId} during inventory adjustment`)
-          // Note: This shouldn't happen as we checked earlier, but handle gracefully
           continue
         }
         
@@ -272,25 +332,49 @@ export async function POST(request: NextRequest) {
       console.log("Inventory adjusted successfully for all products")
     } catch (inventoryError) {
       console.error("Error adjusting inventory:", inventoryError)
-      // This is critical - if inventory adjustment fails, we should handle it
-      // For now, we log the error but don't fail the order creation
-      // In production, you might want to rollback the order or handle this differently
+      // Log error but don't fail the order
     }
     
-    // Clear the cart after successful order creation
+    // Clear only selected items from cart (or entire cart if all items were ordered)
     try {
-      await payload.update({
-        collection: COLLECTION_SLUGS.CARTS,
-        id: cart.id,
-        data: {
-          items: [],
-        },
-        overrideAccess: true,
-      })
-      console.log("Cart cleared successfully")
+      const cart = await findCartByUserId(payload, customerId, 1)
+      
+      if (cart && body.items && Array.isArray(body.items) && Array.isArray(cart.items)) {
+        // Remove only the ordered items from cart
+        const orderedProductIds = new Set(
+          orderItems.map(item => typeof item.product === 'string' ? item.product : item.product?.id)
+        )
+        
+        const remainingItems = cart.items.filter(item => {
+          const itemProductId = resolveRelationId(item.product)
+          return !orderedProductIds.has(itemProductId)
+        })
+        
+        await payload.update({
+          collection: COLLECTION_SLUGS.CARTS,
+          id: cart.id,
+          data: {
+            items: remainingItems,
+          },
+          overrideAccess: true,
+        })
+        
+        console.log(`Cart updated: ${cart.items.length} -> ${remainingItems.length} items`)
+      } else if (cart) {
+        // Clear entire cart if no specific items provided
+        await payload.update({
+          collection: COLLECTION_SLUGS.CARTS,
+          id: cart.id,
+          data: {
+            items: [],
+          },
+          overrideAccess: true,
+        })
+        console.log("Cart cleared successfully")
+      }
     } catch (clearError) {
-      console.error("Error clearing cart:", clearError)
-      // Don't fail the request if cart clearing fails
+      console.error("Error updating cart:", clearError)
+      // Don't fail the request if cart update fails
     }
     
     return NextResponse.json(
@@ -326,4 +410,3 @@ export async function POST(request: NextRequest) {
     )
   }
 }
-
