@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
 
 
     // Send approval email using Payload's email system
-    console.log("Sending approval email...")
     try {
       await payload.sendEmail({
         to: vendor.email,
@@ -138,14 +137,12 @@ export async function POST(request: NextRequest) {
         `
       })
 
-      console.log("Approval email sent successfully")
     } catch (emailError: unknown) {
       if (emailError && typeof emailError === 'object' && 'message' in emailError) {
         console.error("Failed to send approval email:", (emailError as { message: string }).message)
       } else {
         console.error("Failed to send approval email:", emailError)
       }
-      console.log("Continuing despite email failure...")
     }
 
     return NextResponse.json(

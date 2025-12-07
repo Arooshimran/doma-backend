@@ -130,9 +130,7 @@ export async function PUT(request: NextRequest) {
       data: updateData,
       overrideAccess: true,
     })
-    
-    console.log("Customer updated successfully:", updatedCustomer.id)
-    
+        
     const customerProfile = {
       id: updatedCustomer.id,
       email: updatedCustomer.email,

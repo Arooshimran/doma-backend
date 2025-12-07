@@ -40,7 +40,6 @@ export async function POST(request: NextRequest) {
 
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }

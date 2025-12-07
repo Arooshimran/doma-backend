@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
     })
 
     // Send rejection email using Payload's email system
-    console.log("Sending rejection email...")
     try {
       await payload.sendEmail({
         to: vendor.email,
@@ -162,14 +161,12 @@ export async function POST(request: NextRequest) {
         `
       })
 
-      console.log("Rejection email sent successfully")
     } catch (emailError: unknown) {
       if (emailError && typeof emailError === 'object' && 'message' in emailError) {
         console.error("Failed to send rejection email:", (emailError as { message: string }).message)
       } else {
         console.error("Failed to send rejection email:", emailError)
       }
-      console.log("Continuing despite email failure...")
     }
 
 
