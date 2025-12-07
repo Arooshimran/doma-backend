@@ -5,7 +5,7 @@ import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
 const corsHeaders = (request?: NextRequest) =>
   buildCorsHeadersFromRequest(request, {
-    "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   })
 
 // Helper function to extract vendor ID from JWT token
@@ -261,6 +261,108 @@ export async function POST(request: NextRequest) {
     console.error("Error creating order:", error)
     return NextResponse.json(
       { error: "Failed to create order" },
+      { status: 500, headers },
+    )
+  }
+}
+
+// DELETE - Delete order(s)
+// This handler processes bulk deletes from Payload admin panel
+// Access control is handled by the Orders collection's delete access setting
+export async function DELETE(request: NextRequest) {
+  const headers = corsHeaders(request)
+  try {
+    const payload = await getPayloadClient()
+    const { searchParams } = new URL(request.url)
+    
+    // Parse the complex where structure from Payload admin panel query string
+    // Format: where[and][0][id][in][0]=id1&where[and][0][id][in][1]=id2
+    const allParams = Object.fromEntries(searchParams.entries())
+    let ids: string[] = []
+    
+    // Check for bulk delete format
+    if (allParams["where[and][0][id][in][0]"]) {
+      let i = 0
+      while (allParams[`where[and][0][id][in][${i}]`]) {
+        ids.push(allParams[`where[and][0][id][in][${i}]`])
+        i++
+      }
+    }
+    
+    // Fallback: check for single ID
+    if (ids.length === 0) {
+      const id = searchParams.get("id")
+      if (id) {
+        ids = [id]
+      }
+    }
+    
+    // Try to get from request body if not in query params
+    if (ids.length === 0) {
+      try {
+        const body = await request.json().catch(() => null)
+        if (body?.id) {
+          ids = Array.isArray(body.id) ? body.id : [body.id]
+        } else if (body?.where?.id?.in) {
+          ids = Array.isArray(body.where.id.in) ? body.where.id.in : [body.where.id.in]
+        }
+      } catch {
+        // No body or invalid JSON
+      }
+    }
+
+    if (ids.length === 0) {
+      return NextResponse.json(
+        { error: "Order ID(s) required for deletion" },
+        { status: 400, headers },
+      )
+    }
+
+    // Delete each order (Payload's access control will check permissions)
+    const deletedIds: string[] = []
+    const errors: string[] = []
+    
+    for (const id of ids) {
+      try {
+        await payload.delete({
+          collection: "orders",
+          id,
+          // Don't use overrideAccess - let Payload's access control handle it
+        })
+        deletedIds.push(id)
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Unknown error"
+        errors.push(`Failed to delete order ${id}: ${errorMsg}`)
+        console.error(`Error deleting order ${id}:`, error)
+      }
+    }
+
+    if (deletedIds.length === 0) {
+      return NextResponse.json(
+        { 
+          error: "Failed to delete orders",
+          details: errors
+        },
+        { status: 500, headers },
+      )
+    }
+
+    return NextResponse.json(
+      { 
+        success: true, 
+        message: `Deleted ${deletedIds.length} of ${ids.length} order(s)`,
+        deletedIds,
+        ...(errors.length > 0 && { errors })
+      },
+      { status: 200, headers },
+    )
+  } catch (error) {
+    console.error("Error deleting order(s):", error)
+    return NextResponse.json(
+      { 
+        error: "Failed to delete order(s)",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
       { status: 500, headers },
     )
   }

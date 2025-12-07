@@ -68,34 +68,46 @@ export async function POST(request: NextRequest) {
     // Get shipping address from request body or customer's default address
     let shippingAddress = body.shippingAddress
     
-    if (!shippingAddress) {
-      // Try to get default address from customer
-      const customer = await payload.findByID({
-        collection: COLLECTION_SLUGS.CUSTOMERS,
-        id: customerId,
-        overrideAccess: true,
-      })
+    // If no shipping address provided in body, try to get from customer profile
+    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city) {
+      console.log("No valid shipping address in body, fetching from customer profile...")
       
-      const defaultAddress = customer?.addresses?.find((addr: any) => addr.isDefault)
-      if (defaultAddress) {
-        shippingAddress = {
-          firstName: defaultAddress.label || customer.Name?.split(' ')[0] || '',
-          lastName: customer.Name?.split(' ').slice(1).join(' ') || '',
-          street: defaultAddress.street,
-          city: defaultAddress.city,
-          state: defaultAddress.state || '',
-          country: defaultAddress.country,
-          phone: customer.phone || '',
+      try {
+        const customer = await payload.findByID({
+          collection: COLLECTION_SLUGS.CUSTOMERS,
+          id: customerId,
+          overrideAccess: true,
+        })
+        
+        const defaultAddress = customer?.addresses?.find((addr: any) => addr.isDefault)
+        if (defaultAddress) {
+          const nameParts = (customer.Name || '').trim().split(' ')
+          shippingAddress = {
+            firstName: defaultAddress.firstName || nameParts[0] || 'Customer',
+            lastName: defaultAddress.lastName || nameParts.slice(1).join(' ') || '',
+            street: defaultAddress.street || '',
+            city: defaultAddress.city || '',
+            state: defaultAddress.state || '',
+            country: defaultAddress.country || 'Pakistan',
+            phone: defaultAddress.phone || customer.phone || '',
+          }
+          console.log("Using customer default address:", shippingAddress)
         }
+      } catch (customerError) {
+        console.error("Error fetching customer profile:", customerError)
       }
     }
     
+    // Final validation of shipping address
     if (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.country) {
+      console.error("Missing required shipping address fields:", shippingAddress)
       return NextResponse.json(
-        { error: "Shipping address is required" },
+        { error: "Shipping address with street, city, and country is required" },
         { status: 400, headers }
       )
     }
+    
+    console.log("Final shipping address to use:", shippingAddress)
     
     const orderItems = []
     
@@ -232,7 +244,7 @@ export async function POST(request: NextRequest) {
     
     console.log("Creating order with totals:", { subtotal, tax, shippingCost, total })
     
-    // Create order
+    // Create order with safely trimmed shipping address
     const order = await payload.create({
       collection: COLLECTION_SLUGS.ORDERS,
       data: {
@@ -244,13 +256,13 @@ export async function POST(request: NextRequest) {
         paymentId: body.paymentId || null,
         items: orderItems,
         shippingAddress: {
-          firstName: shippingAddress.firstName?.trim() || 'Customer', // ← NEW
-          lastName: shippingAddress.lastName?.trim() || '',           // ← NEW
-          street: shippingAddress.street?.trim() || shippingAddress.street,  // ← NEW
-          city: shippingAddress.city?.trim() || shippingAddress.city,        // ← NEW
-          state: shippingAddress.state?.trim() || '',
-          country: shippingAddress.country || 'Pakistan',             // ← NEW
-          phone: shippingAddress.phone?.trim() || shippingAddress.phone || '', // ← NEW
+          firstName: (shippingAddress.firstName || '').trim() || 'Customer',
+          lastName: (shippingAddress.lastName || '').trim() || '',
+          street: (shippingAddress.street || '').trim(),
+          city: (shippingAddress.city || '').trim(),
+          state: (shippingAddress.state || '').trim() || '',
+          country: (shippingAddress.country || 'Pakistan').trim(),
+          phone: (shippingAddress.phone || '').trim(),
         },
         billingAddress: body.billingAddress || null,
         subtotal: Number(subtotal.toFixed(2)),
@@ -264,76 +276,8 @@ export async function POST(request: NextRequest) {
     
     console.log("Order created successfully:", order.id)
     
-    // Reduce inventory for all products in the order
-    try {
-      const productCache = new Map<string, any>()
-      
-      for (const item of orderItems) {
-        const productId = typeof item.product === 'string' ? item.product : item.product?.id
-        if (!productId) continue
-        
-        // Fetch product if not already cached
-        if (!productCache.has(productId)) {
-          const product = await payload.findByID({
-            collection: COLLECTION_SLUGS.PRODUCTS,
-            id: productId,
-            depth: 0,
-            overrideAccess: true,
-          }).catch(() => null)
-          
-          if (product) {
-            productCache.set(productId, product)
-          }
-        }
-        
-        const product = productCache.get(productId)
-        if (!product) {
-          console.warn(`Product ${productId} not found for inventory adjustment`)
-          continue
-        }
-        
-        const quantity = item.quantity || 1
-        const currentStock = product?.inventory?.quantity ?? 0
-        
-        // Double-check stock availability before reducing
-        if (currentStock < quantity) {
-          console.error(`Insufficient stock for product ${productId} during inventory adjustment`)
-          continue
-        }
-        
-        // Reduce inventory
-        await payload.update({
-          collection: COLLECTION_SLUGS.PRODUCTS,
-          id: productId,
-          data: {
-            inventory: {
-              ...product.inventory,
-              quantity: currentStock - quantity,
-            },
-          },
-          overrideAccess: true,
-          depth: 0,
-        })
-        
-        console.log(`Inventory reduced for product ${productId}: ${currentStock} -> ${currentStock - quantity}`)
-      }
-      
-      // Mark order as having inventory adjusted
-      await payload.update({
-        collection: COLLECTION_SLUGS.ORDERS,
-        id: order.id,
-        data: {
-          inventoryAdjusted: true,
-        },
-        overrideAccess: true,
-        depth: 0,
-      })
-      
-      console.log("Inventory adjusted successfully for all products")
-    } catch (inventoryError) {
-      console.error("Error adjusting inventory:", inventoryError)
-      // Log error but don't fail the order
-    }
+    // Inventory reduction is now handled by the Orders collection beforeChange hook
+    // So we don't need to manually reduce inventory here anymore
     
     // Clear only selected items from cart (or entire cart if all items were ordered)
     try {

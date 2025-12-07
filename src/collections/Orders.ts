@@ -60,7 +60,11 @@ const Orders: CollectionConfig = {
       if (isAdmin({ req })) return true
       return getCustomerAccessFilter(req)
     },
-    delete: ({ req }) => isAdmin({ req }),
+    delete: ({ req }) => {
+      // Allow admins to delete orders
+      if (isAdmin({ req })) return true
+      return false
+    },
   },
   fields: [
     {
@@ -280,12 +284,11 @@ const Orders: CollectionConfig = {
           const lineTotal = Number((unitPrice * quantity).toFixed(2))
 
           subtotal += lineTotal
-
           normalizedItems.push({
             ...rawItem,
             product: productId,
             productTitle: rawItem.productTitle ?? product.title,
-            vendor: rawItem.vendor ?? null,
+            vendor: rawItem.vendor ?? resolveRelationId(product.vendor) ?? null,
             quantity,
             price: unitPrice,
             total: lineTotal,
