@@ -8,7 +8,6 @@ const corsHeaders = (request?: NextRequest) =>
   })
 
 export async function OPTIONS(request: NextRequest) {
-  console.log("Handling OPTIONS preflight request for customer register")
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(request),
@@ -18,12 +17,9 @@ export async function OPTIONS(request: NextRequest) {
 // POST - Customer Registration
 export async function POST(request: NextRequest) {
   try {
-    console.log("POST /api/customer/register - Starting...")
     
     const body = await request.json()
     const { email, password, Name, phone } = body
-
-    console.log("Registration attempt for email:", email)
 
     if (!email || !password || !Name) {
       return NextResponse.json(
@@ -87,8 +83,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log("Customer created successfully:", newCustomer.email)
-
     try {
       await payload.create({
         collection: "carts",
@@ -97,7 +91,6 @@ export async function POST(request: NextRequest) {
           items: [],
         },
       })
-      console.log("Empty cart created for customer:", newCustomer.id)
     } catch (cartError) {
       console.error("Failed to create cart for new customer:", cartError)
     }
@@ -110,7 +103,6 @@ export async function POST(request: NextRequest) {
           products: [],
         },
       })
-      console.log("Empty wishlist created for customer:", newCustomer.id)
     } catch (wishlistError) {
       console.error("Failed to create wishlist for new customer:", wishlistError)
     }
@@ -123,8 +115,6 @@ export async function POST(request: NextRequest) {
         password,
       },
     })
-
-    console.log("Auto-login successful for new customer")
 
     return NextResponse.json(
       {

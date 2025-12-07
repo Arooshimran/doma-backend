@@ -18,7 +18,6 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("GET /api/vendor/categories - Starting...")
     
     const payload = await getPayloadClient()
     
@@ -31,8 +30,6 @@ export async function GET(request: NextRequest) {
       limit: 100, 
       overrideAccess: true, 
     })
-
-    console.log("Categories fetched successfully:", categories.docs.length)
 
     return NextResponse.json({
       success: true,
@@ -62,7 +59,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("POST /api/vendor/categories - Creating new category...")
     
     const payload = await getPayloadClient()
     const data = await request.json()
@@ -112,8 +108,6 @@ export async function POST(request: NextRequest) {
       },
       overrideAccess: true,
     })
-
-    console.log("Category created successfully:", newCategory.id)
 
     return NextResponse.json({
       success: true,

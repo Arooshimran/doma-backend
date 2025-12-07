@@ -31,8 +31,6 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("GET /api/public-products - Starting...")
-
     const payload = await getPayloadClient()
     const { searchParams } = new URL(request.url)
 
@@ -82,8 +80,6 @@ export async function GET(request: NextRequest) {
       overrideAccess: true,
     })
 
-    console.log("Products fetched:", products.docs.length)
-
     return NextResponse.json(products, { headers })
   } catch (error) {
     console.error("Error fetching products:", error)
@@ -101,8 +97,6 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("POST /api/products received")
-
     const isAuthorized = isAdminOrVendor({ req: request as any })
     if (!isAuthorized) {
       return NextResponse.json(
@@ -159,8 +153,6 @@ export async function POST(request: NextRequest) {
       collection: "products",
       data,
     })
-
-    console.log("Product created successfully:", createdProduct.id)
     return NextResponse.json(createdProduct, { status: 201, headers })
   } catch (error) {
     console.error("Error creating product:", error)

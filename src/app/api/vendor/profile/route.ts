@@ -33,19 +33,15 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("GET /api/vendor/profile - Starting...")
     
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
-    
-    console.log("Vendor authenticated:", vendorId)
-    
+        
     const payload = await getPayloadClient()
     
     const vendor = await payload.findByID({
@@ -56,20 +52,11 @@ export async function GET(request: NextRequest) {
     })
     
     if (!vendor) {
-      console.log("Vendor not found for ID:", vendorId)
       return NextResponse.json(
         { error: "Vendor not found" },
         { status: 404, headers }
       )
     }
-    
-    console.log("Vendor found:", {
-      id: vendor.id,
-      email: vendor.email,
-      storeName: vendor.storeName,
-      status: vendor.status,
-      hasLogo: !!vendor.storeLogo
-    })
     
     const vendorProfile = {
       id: vendor.id,
@@ -103,9 +90,7 @@ export async function GET(request: NextRequest) {
       createdAt: vendor.createdAt,
       updatedAt: vendor.updatedAt,
     }
-    
-    console.log("Returning vendor profile:", JSON.stringify(vendorProfile, null, 2))
-    
+        
     return NextResponse.json(
       { success: true, vendor: vendorProfile },
       { headers }
@@ -125,20 +110,15 @@ export async function GET(request: NextRequest) {
 // PUT - Update vendor profile (ENHANCED)
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
-  try {
-    console.log("PUT /api/vendor/profile - Starting update...")
-    
+  try {    
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
-    
-    console.log("Vendor authenticated:", vendorId)
-    
+        
     let body
     try {
       body = await request.json()
@@ -148,9 +128,7 @@ export async function PUT(request: NextRequest) {
         { error: "Invalid JSON body" },
         { status: 400, headers }
       )
-    }
-    console.log("Update data received:", JSON.stringify(body, null, 2))
-    
+    }   
     if (!body.storeName?.trim()) {
       return NextResponse.json(
         { error: "Store name is required" },
@@ -185,9 +163,7 @@ export async function PUT(request: NextRequest) {
         updateData.storeLogo = body.storeLogo.id
       }
     }
-    
-    console.log("Final update data:", JSON.stringify(updateData, null, 2))
-    
+        
     const updatedVendor = await payload.update({
       collection: "vendors",
       id: vendorId,
@@ -195,9 +171,7 @@ export async function PUT(request: NextRequest) {
       populate: ["storeLogo"],
       overrideAccess: true,
     })
-    
-    console.log("Vendor updated successfully:", updatedVendor.id)
-    
+        
     const vendorProfile = {
       id: updatedVendor.id,
       email: updatedVendor.email,
@@ -230,9 +204,7 @@ export async function PUT(request: NextRequest) {
       createdAt: updatedVendor.createdAt,
       updatedAt: updatedVendor.updatedAt,
     }
-    
-    console.log("Returning updated vendor profile:", JSON.stringify(vendorProfile, null, 2))
-    
+        
     return NextResponse.json(
       { success: true, vendor: vendorProfile, message: "Profile updated successfully" },
       { headers }

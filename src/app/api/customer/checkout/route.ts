@@ -37,7 +37,6 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("POST /api/customer/checkout - Starting...")
 
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
@@ -47,8 +46,6 @@ export async function POST(request: NextRequest) {
         { status: 401, headers }
       )
     }
-
-    console.log("Customer authenticated:", customerId)
 
     const payload = await getPayloadClient()
 
@@ -131,12 +128,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Final shipping address:", shippingAddress)
-
     const orderItems: any[] = []
 
     if (body.items && Array.isArray(body.items) && body.items.length > 0) {
-      console.log("Processing items from request body:", body.items.length, "items")
 
       for (const item of body.items) {
         const productId =
@@ -193,7 +187,6 @@ export async function POST(request: NextRequest) {
         })
       }
     } else {
-      console.log("No items in request, falling back to cart")
 
       const cart = await findCartByUserId(payload, customerId, 2)
 
@@ -203,8 +196,6 @@ export async function POST(request: NextRequest) {
           { status: 400, headers }
         )
       }
-
-      console.log("Cart found with", cart.items.length, "items")
 
       for (const cartItem of cart.items) {
         const productId = resolveRelationId(cartItem.product)
@@ -267,8 +258,6 @@ export async function POST(request: NextRequest) {
 
     const orderNumber = generateOrderNumber()
 
-    console.log("Creating order...")
-
     const order = await payload.create({
   collection: COLLECTION_SLUGS.ORDERS,
   data: {
@@ -289,8 +278,6 @@ export async function POST(request: NextRequest) {
   depth: 2,
   overrideAccess: true,
 })
-
-    console.log("Order created:", order.id)
 
     try {
       const cart = await findCartByUserId(payload, customerId, 1)

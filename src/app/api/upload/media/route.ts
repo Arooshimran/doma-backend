@@ -16,9 +16,7 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
-  try {
-    console.log("POST /api/upload/media - Starting file upload...")
-    
+  try {    
     const payload = await getPayloadClient()
     
     let formData
@@ -36,18 +34,12 @@ export async function POST(request: NextRequest) {
     const alt = formData.get('alt') as string
 
     if (!file) {
-      console.log("No file provided")
       return NextResponse.json(
         { error: 'No file provided' }, 
         { status: 400, headers }
       )
     }
 
-    console.log("File details:", {
-      name: file.name,
-      size: file.size,
-      type: file.type
-    })
 
     // Validate file type
     const allowedTypes = [
@@ -60,7 +52,6 @@ export async function POST(request: NextRequest) {
     ]
     
     if (!allowedTypes.includes(file.type)) {
-      console.log("Invalid file type:", file.type)
       return NextResponse.json({
         error: 'Invalid file type. Only JPEG, PNG, WebP, GIF, and SVG files are allowed.'
       }, { status: 400, headers })
@@ -69,7 +60,6 @@ export async function POST(request: NextRequest) {
     // Validate file size (10MB max)
     const maxSize = 10 * 1024 * 1024 
     if (file.size > maxSize) {
-      console.log("File too large:", file.size)
       return NextResponse.json({
         error: 'File too large. Maximum size is 10MB.'
       }, { status: 400, headers })
@@ -79,8 +69,6 @@ export async function POST(request: NextRequest) {
       // Convert file to buffer and upload to Payload Media collection
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
-
-      console.log("Uploading to Payload...")
 
       const uploadedMedia = await payload.create({
         collection: 'media',
@@ -94,12 +82,6 @@ export async function POST(request: NextRequest) {
           mimetype: file.type,
         },
         overrideAccess: true,
-      })
-
-      console.log("Media uploaded successfully:", {
-        id: uploadedMedia.id,
-        filename: (uploadedMedia as any).filename,
-        url: (uploadedMedia as any).url
       })
 
       return NextResponse.json({

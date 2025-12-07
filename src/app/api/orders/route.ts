@@ -47,12 +47,9 @@ export async function OPTIONS(request: NextRequest) {
 // GET - Fetch vendor's orders
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
-  try {
-    console.log("GET /api/orders - Starting...")
-    
+  try {    
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -61,8 +58,6 @@ export async function GET(request: NextRequest) {
         }
       )
     }
-
-    console.log("Vendor authenticated:", vendorId)
     
     const payload = await getPayloadClient()
     const { searchParams } = new URL(request.url)
@@ -70,8 +65,6 @@ export async function GET(request: NextRequest) {
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const status = searchParams.get("status") || "all"
-
-    console.log("Query params:", { page, limit, status })
 
     const vendorProducts = await payload.find({
       collection: "products",
@@ -85,8 +78,6 @@ export async function GET(request: NextRequest) {
     })
 
     const vendorProductIds = vendorProducts.docs.map((p: any) => p.id)
-    console.log("Vendor has", vendorProductIds.length, "products")
-
     if (vendorProductIds.length === 0) {
       return NextResponse.json({
         docs: [],
@@ -111,8 +102,6 @@ export async function GET(request: NextRequest) {
       where.orderStatus = { equals: status }
     }
 
-    console.log("Query where clause:", JSON.stringify(where, null, 2))
-
     const orders = await payload.find({
       collection: "orders",
       where,
@@ -122,8 +111,6 @@ export async function GET(request: NextRequest) {
       depth: 2,
       overrideAccess: true,
     })
-
-    console.log("Orders fetched successfully:", orders.docs.length)
 
     return NextResponse.json(orders, {
       headers,

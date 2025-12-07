@@ -88,14 +88,11 @@ const Vendors: CollectionConfig = {
       async ({ doc, req, operation, previousDoc }) => {
         // Send email when vendor status changes (only when changed via admin panel)
         if (operation === "update" && doc.status !== previousDoc?.status) {
-          console.log(`Vendor status changed: ${previousDoc?.status} → ${doc.status}`)
           
           try {
             if (doc.status === "approved") {
-              console.log("Sending approval email via hook...")
               await sendVendorApprovalEmail(req.payload, doc)
             } else if (doc.status === "rejected") {
-              console.log("Sending rejection email via hook...")
               await sendVendorRejectionEmail(req.payload, doc)
             }
           } catch (emailError: any) {
@@ -218,9 +215,7 @@ const Vendors: CollectionConfig = {
 }
 
 // email notification functions
-async function sendVendorApprovalEmail(payload: any, vendor: any) {
-  console.log(`Sending approval email to ${vendor.email}`)
-  
+async function sendVendorApprovalEmail(payload: any, vendor: any) {  
   try {
     await payload.sendEmail({
       to: vendor.email,
@@ -256,7 +251,6 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
       text: `Congratulations! Your vendor application has been approved! You can now log in at: http://localhost:3001/vendor/login`
     })
     
-    console.log("Approval email sent successfully")
   } catch (error: any) {
     console.error("Failed to send approval email:", error.message)
     throw error
@@ -264,7 +258,6 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
 }
 
 async function sendVendorRejectionEmail(payload: any, vendor: any) {
-  console.log(`Sending rejection email to ${vendor.email}`)
   
   try {
     await payload.sendEmail({
@@ -307,7 +300,6 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
       text: `Update on your vendor application. We are unable to approve your application at this time. ${vendor.rejectionReason ? `Reason: ${vendor.rejectionReason}` : ''} You can reapply at: http://localhost:3001/vendor/register`
     })
     
-    console.log("Rejection email sent successfully")
   } catch (error: any) {
     console.error("Failed to send rejection email:", error.message)
     throw error

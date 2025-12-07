@@ -15,14 +15,11 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  console.log("Processing vendor login request...")
 
   try {
     // Parse request body
     const body = await request.json()
     const { email, password } = body
-
-    console.log("Login attempt for email:", email)
 
     if (!email || !password) {
       console.error("Missing email or password")
@@ -34,12 +31,7 @@ export async function POST(request: NextRequest) {
         }
       )
     }
-
-    console.log("Getting Payload client...")
     const payload = await getPayloadClient()
-    console.log("Payload client obtained")
-
-    console.log("Checking if vendor exists in database...")
     try {
       const existingVendor = await payload.find({
         collection: "vendors",
@@ -62,17 +54,8 @@ export async function POST(request: NextRequest) {
       }
 
       const vendor = existingVendor.docs[0]
-      console.log("Vendor found:", {
-        id: vendor.id,
-        email: vendor.email,
-        storeName: vendor.storeName,
-        status: vendor.status,
-        hasPassword: !!vendor.password,
-        role: vendor.role,
-      })
 
       if (vendor.status === "pending") {
-        console.log("Vendor status: pending")
         return NextResponse.json(
           {
             error: "Account pending approval",
@@ -87,7 +70,6 @@ export async function POST(request: NextRequest) {
       }
 
       if (vendor.status === "rejected") {
-        console.log("Vendor status: rejected")
         return NextResponse.json(
           {
             error: "Account rejected",
@@ -113,16 +95,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Attempt login
-    console.log("Attempting login with Payload...")
     const result = await payload.login({
       collection: "vendors",
       data: { email, password },
     })
 
-    console.log("Login successful, user authenticated")
 
     if (result?.user?.status === "pending") {
-      console.log("User status: pending")
       return NextResponse.json(
         {
           error: "Account pending approval",
@@ -137,7 +116,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (result?.user?.status === "rejected") {
-      console.log("User status: rejected")
       return NextResponse.json(
         {
           error: "Account rejected",
@@ -150,8 +128,6 @@ export async function POST(request: NextRequest) {
         }
       )
     }
-
-    console.log("Login successful, user status approved")
 
     return NextResponse.json(
       {
@@ -179,7 +155,6 @@ export async function POST(request: NextRequest) {
 
     if (err.message?.includes('Invalid login credentials') || 
         err.message?.includes('email or password provided is incorrect')) {
-      console.log("Authentication failed - incorrect credentials")
       return NextResponse.json(
         { 
           error: "Invalid email or password",

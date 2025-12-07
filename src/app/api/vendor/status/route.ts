@@ -15,13 +15,10 @@ export async function OPTIONS(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  console.log("Processing vendor status check request...")
 
   try {
     const { searchParams } = new URL(request.url)
     const email = searchParams.get("email")
-
-    console.log("Status check for email:", email)
 
     if (!email) {
       console.error("Missing email parameter")
@@ -33,12 +30,8 @@ export async function GET(request: NextRequest) {
         }
       )
     }
-
-    console.log("Getting Payload client...")
     const payload = await getPayloadClient()
-    console.log("Payload client obtained")
 
-    console.log("Checking vendor status in database...")
     try {
       const vendors = await payload.find({
         collection: "vendors",
@@ -61,12 +54,6 @@ export async function GET(request: NextRequest) {
       }
 
       const vendor = vendors.docs[0]
-      console.log("Vendor found:", {
-        id: vendor.id,
-        email: vendor.email,
-        storeName: vendor.storeName,
-        status: vendor.status,
-      })
 
       // Return vendor status information
       return NextResponse.json(

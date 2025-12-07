@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
 
   try {
-    console.log("POST /api/customer/change-password - Starting...")
     
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
@@ -47,7 +46,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    console.log("Customer authenticated:", customerId)
     
     let body
     try {
@@ -107,7 +105,6 @@ export async function POST(request: NextRequest) {
           password: currentPassword,
         },
       })
-      console.log("Current password verified successfully")
     } catch (loginError) {
       console.error("Current password verification failed:", loginError)
       return NextResponse.json(
@@ -125,9 +122,7 @@ export async function POST(request: NextRequest) {
       },
       overrideAccess: true,
     })
-    
-    console.log("Password updated successfully for customer:", customerId)
-    
+        
     return NextResponse.json(
       { 
         success: true, 

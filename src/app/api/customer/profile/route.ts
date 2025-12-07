@@ -33,19 +33,15 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("GET /api/customer/profile - Starting...")
     
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
-    
-    console.log("Customer authenticated:", customerId)
-    
+        
     const payload = await getPayloadClient()
     
     const customer = await payload.findByID({
@@ -55,19 +51,12 @@ export async function GET(request: NextRequest) {
     })
     
     if (!customer) {
-      console.log("Customer not found for ID:", customerId)
       return NextResponse.json(
         { error: "Customer not found" },
         { status: 404, headers }
       )
     }
     
-    console.log("Customer found:", {
-      id: customer.id,
-      email: customer.email,
-      Name: customer.Name,
-      status: customer.status,
-    })
     
     const customerProfile = {
       id: customer.id,
@@ -80,9 +69,7 @@ export async function GET(request: NextRequest) {
       createdAt: customer.createdAt,
       updatedAt: customer.updatedAt,
     }
-    
-    console.log("Returning customer profile:", JSON.stringify(customerProfile, null, 2))
-    
+        
     return NextResponse.json(
       { success: true, customer: customerProfile },
       { headers }
@@ -102,19 +89,15 @@ export async function GET(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("PUT /api/customer/profile - Starting update...")
     
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         { status: 401, headers }
       )
     }
-    
-    console.log("Customer authenticated:", customerId)
-    
+        
     let body
     try {
       body = await request.json()
@@ -124,9 +107,7 @@ export async function PUT(request: NextRequest) {
         { error: "Invalid JSON body" },
         { status: 400, headers }
       )
-    }
-    console.log("Update data received:", JSON.stringify(body, null, 2))
-    
+    }    
     const payload = await getPayloadClient()
     
     const updateData: any = {}
@@ -142,9 +123,7 @@ export async function PUT(request: NextRequest) {
     if (body.addresses !== undefined) {
       updateData.addresses = body.addresses
     }
-    
-    console.log("Final update data:", JSON.stringify(updateData, null, 2))
-    
+        
     const updatedCustomer = await payload.update({
       collection: "customers",
       id: customerId,
@@ -165,9 +144,7 @@ export async function PUT(request: NextRequest) {
       createdAt: updatedCustomer.createdAt,
       updatedAt: updatedCustomer.updatedAt,
     }
-    
-    console.log("Returning updated customer profile:", JSON.stringify(customerProfile, null, 2))
-    
+        
     return NextResponse.json(
       { success: true, customer: customerProfile, message: "Profile updated successfully" },
       { headers }

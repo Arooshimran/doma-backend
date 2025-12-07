@@ -8,7 +8,6 @@ const corsHeaders = (request?: NextRequest) =>
   })
 
 export async function OPTIONS(request: NextRequest) {
-  console.log("Handling OPTIONS preflight request for customer login")
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(request),
@@ -18,12 +17,10 @@ export async function OPTIONS(request: NextRequest) {
 // POST - Customer Login
 export async function POST(request: NextRequest) {
   try {
-    console.log("POST /api/customer/login - Starting...")
     
     const body = await request.json()
     const { email, password } = body
 
-    console.log("Login attempt for email:", email)
 
     if (!email || !password) {
       return NextResponse.json(
@@ -44,8 +41,6 @@ export async function POST(request: NextRequest) {
         password,
       },
     })
-
-    console.log("Customer login successful:", loginResult.user.email)
 
     return NextResponse.json(
       {

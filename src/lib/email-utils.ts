@@ -12,7 +12,6 @@ export async function sendVendorApprovalEmail(vendor: { email: string, name?: st
              <p>Your vendor account has been approved. You can now start listing your products!</p>
              <p>Best regards,<br/>Your Store Team</p>`,
     });
-    console.log(`Approval email sent to ${vendor.email}`);
   } catch (error) {
     console.error(`Failed to send approval email to ${vendor.email}`, error);
   }
@@ -29,7 +28,6 @@ export async function sendVendorRejectionEmail(vendor: { email: string, name?: s
              ${reason ? `<p>Reason: ${reason}</p>` : ''}
              <p>Best regards,<br/>Your Store Team</p>`,
     });
-    console.log(`Rejection email sent to ${vendor.email}`);
   } catch (error) {
     console.error(`Failed to send rejection email to ${vendor.email}`, error);
   }

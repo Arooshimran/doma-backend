@@ -9,38 +9,25 @@ const corsHeaders = (request?: NextRequest) =>
 
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
   try {
-    console.log("Starting token verification...")
-    
     const authHeader = request.headers.get("Authorization")
-    console.log("Auth header:", authHeader ? `${authHeader.substring(0, 20)}...` : "Missing")
     
     if (!authHeader || !authHeader.startsWith("JWT ")) {
-      console.log("No valid Authorization header found")
       return null
     }
 
     const token = authHeader.substring(4)
-    console.log("Token extracted, length:", token.length)
 
     try {
       const base64Payload = token.split('.')[1]
       const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf-8')
       const decoded = JSON.parse(decodedPayload)
       
-      console.log("Token decoded successfully:", { 
-        id: decoded.id, 
-        email: decoded.email,
-        collection: decoded.collection 
-      })
-      
       if (decoded.collection !== 'vendors') {
-        console.log("Token is not for vendors collection")
         return null
       }
       
       return decoded.id
     } catch (decodeError) {
-      console.log("JWT decode failed:", decodeError)
       return null
     }
   } catch (error) {
@@ -51,13 +38,10 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
 
 const handleCategory = async (payload: any, categoryName: string): Promise<string | null> => {
   if (!categoryName) {
-    console.log("No category provided")
     return null
   }
   
   try {
-    console.log("Looking up category:", categoryName)
-    
     const existingCategories = await payload.find({
       collection: 'categories',
       where: {
@@ -69,11 +53,9 @@ const handleCategory = async (payload: any, categoryName: string): Promise<strin
     })
 
     if (existingCategories.docs.length > 0) {
-      console.log("Found existing category:", existingCategories.docs[0].id)
       return existingCategories.docs[0].id
     }
 
-    console.log("Creating new category:", categoryName)
     const newCategory = await payload.create({
       collection: 'categories',
       data: {
@@ -82,7 +64,6 @@ const handleCategory = async (payload: any, categoryName: string): Promise<strin
       }
     })
 
-    console.log("Created new category:", newCategory.id)
     return newCategory.id
   } catch (error) {
     console.warn("Category handling failed:", error)
@@ -91,7 +72,6 @@ const handleCategory = async (payload: any, categoryName: string): Promise<strin
 }
 
 export async function OPTIONS(request: NextRequest) {
-  console.log("Handling OPTIONS preflight request for vendor products")
   return new NextResponse(null, {
     status: 204,
     headers: corsHeaders(request),
@@ -102,11 +82,8 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("GET /api/vendor/products - Starting...")
-    
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -115,8 +92,6 @@ export async function GET(request: NextRequest) {
         }
       )
     }
-
-    console.log("Vendor authenticated:", vendorId)
     
     const payload = await getPayloadClient()
     const { searchParams } = new URL(request.url)
@@ -124,8 +99,6 @@ export async function GET(request: NextRequest) {
     const page = Number.parseInt(searchParams.get("page") || "1")
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const status = searchParams.get("status") || "all"
-
-    console.log("Query params:", { page, limit, status })
 
     const where: any = {
       vendor: {
@@ -137,8 +110,6 @@ export async function GET(request: NextRequest) {
       where.status = { equals: status }
     }
 
-    console.log("Query where clause:", JSON.stringify(where, null, 2))
-
     const products = await payload.find({
       collection: "products",
       where,
@@ -148,14 +119,6 @@ export async function GET(request: NextRequest) {
       sort: "-createdAt",
       overrideAccess: true,
     })
-
-    console.log("Products fetched successfully:", products.docs.length)
-    console.log("Sample product (if any):", products.docs[0] ? {
-      id: products.docs[0].id,
-      title: products.docs[0].title,
-      vendor: products.docs[0].vendor,
-      status: products.docs[0].status
-    } : "No products found")
 
     return NextResponse.json(products, {
       headers,
@@ -179,14 +142,8 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("POST /api/vendor/products - Starting...")
-    
-    console.log("Request method:", request.method)
-    console.log("Request URL:", request.url)
-
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -196,14 +153,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Vendor authenticated:", vendorId)
-
     let data
     try {
       data = await request.json()
-      console.log("Request body:", JSON.stringify(data, null, 2))
     } catch (parseError) {
-      console.log("Failed to parse request body:", parseError)
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         {
@@ -219,16 +172,7 @@ export async function POST(request: NextRequest) {
     
     const price = data.price || pricing?.price || pricingDetails?.sellingPrice
     
-    console.log("Validating fields:", { 
-      title, 
-      description, 
-      price,
-      pricing: data.pricing,
-      pricingDetails: data.pricingDetails
-    })
-    
     if (!title || !description || price === undefined || price === null) {
-      console.log("Missing required fields")
       return NextResponse.json(
         { error: "Missing required fields: title, Description (or shortDescription), price" },
         {
@@ -240,7 +184,6 @@ export async function POST(request: NextRequest) {
 
     const numericPrice = Number(price)
     if (isNaN(numericPrice) || numericPrice <= 0) {
-      console.log("Invalid price:", price)
       return NextResponse.json(
         { error: "Price must be a positive number" },
         {
@@ -250,10 +193,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Validation passed")
-
     const payload = await getPayloadClient()
-    console.log("Payload client obtained")
 
     let categoryId = null
     if (data.category) {
@@ -292,16 +232,12 @@ export async function POST(request: NextRequest) {
       ...(data.colors && { colors: data.colors }),
     }
 
-    console.log("Product data to create:", JSON.stringify(productData, null, 2))
-
     try {
       const product = await payload.create({
         collection: "products",
         data: productData,
         overrideAccess: true,
       })
-
-      console.log("Product created successfully:", product.id)
 
       return NextResponse.json(
         {
@@ -317,10 +253,6 @@ export async function POST(request: NextRequest) {
     } catch (createError) {
       console.error("Product creation failed:", createError)
       
-      if (createError instanceof Error) {
-        console.error(" Error message:", createError.message)
-        console.error("Error stack:", createError.stack)
-      }
       
       let errorMessage = "Failed to create product in database"
       if (createError instanceof Error) {
@@ -349,11 +281,6 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Unexpected error in POST /api/vendor/products:", error)
     
-    if (error instanceof Error) {
-      console.error("Error message:", error.message)
-      console.error("Error stack:", error.stack)
-    }
-    
     return NextResponse.json(
       { 
         error: "Internal server error",
@@ -371,11 +298,8 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    console.log("PUT /api/vendor/products - Starting update...")
-    
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
-      console.log("Unauthorized - Invalid or missing token")
       return NextResponse.json(
         { error: "Unauthorized - Invalid or missing token" },
         {
@@ -384,25 +308,18 @@ export async function PUT(request: NextRequest) {
         }
       )
     }
-
-    console.log("Vendor authenticated:", vendorId)
     
     const payload = await getPayloadClient()
     const updateData = await request.json()
-    
-    console.log("Update data received:", JSON.stringify(updateData, null, 2))
 
     const id = updateData.id || new URL(request.url).searchParams.get("id")
 
     if (!id) {
-      console.log("Product ID is required")
       return NextResponse.json(
         { error: "Product ID is required" },
         { status: 400, headers }
       )
     }
-
-    console.log("Updating product ID:", id)
 
     try {
       const existingProduct = await payload.findByID({
@@ -423,14 +340,11 @@ export async function PUT(request: NextRequest) {
         : existingProduct.vendor
         
       if (productVendorId !== vendorId) {
-        console.log("Access denied - product belongs to different vendor")
         return NextResponse.json(
           { error: "Access denied - you can only edit your own products" },
           { status: 403, headers }
         )
       }
-
-      console.log("Product ownership verified")
 
     } catch (verifyError) {
       console.error("Error verifying product ownership:", verifyError)
@@ -445,8 +359,6 @@ export async function PUT(request: NextRequest) {
     if (dataToUpdate.category && typeof dataToUpdate.category === 'object') {
       dataToUpdate.category = dataToUpdate.category.id
     }
-    
-    console.log("Final update data:", JSON.stringify(dataToUpdate, null, 2))
 
     const updatedProduct = await payload.update({
       collection: "products",
@@ -454,8 +366,6 @@ export async function PUT(request: NextRequest) {
       data: dataToUpdate,
       overrideAccess: true,
     })
-
-    console.log("Product updated successfully:", updatedProduct.id)
 
     return NextResponse.json(
       { 

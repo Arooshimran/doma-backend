@@ -16,17 +16,11 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
-  console.log("=== VENDOR APPROVAL REQUEST STARTED ===")
   
   try {
     const payload = await getPayloadClient()
     const { vendorId, adminId, approvalNote } = await request.json()
 
-    console.log("Approval request details:", {
-      vendorId,
-      adminId,
-      hasApprovalNote: !!approvalNote
-    })
 
     if (!vendorId) {
       console.error("Missing vendorId")
@@ -36,7 +30,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Fetching vendor details...")
     const existingVendor = await payload.findByID({
       collection: "vendors",
       id: vendorId,
@@ -50,14 +43,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Found vendor:", {
-      email: existingVendor.email,
-      storeName: existingVendor.storeName,
-      currentStatus: existingVendor.status
-    })
 
     if (existingVendor.status === "approved") {
-      console.log("Vendor already approved")
       return NextResponse.json(
         { 
           success: true, 
@@ -68,7 +55,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Updating vendor status to approved...")
     const vendor = await payload.update({
       collection: "vendors",
       id: vendorId,
@@ -78,7 +64,6 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    console.log("Vendor status updated successfully")
 
     // Send approval email using Payload's email system
     console.log("Sending approval email...")
@@ -162,8 +147,6 @@ export async function POST(request: NextRequest) {
       }
       console.log("Continuing despite email failure...")
     }
-
-    console.log("=== VENDOR APPROVAL COMPLETED SUCCESSFULLY ===\n")
 
     return NextResponse.json(
       {

@@ -16,17 +16,11 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
-  console.log("=== VENDOR REJECTION REQUEST STARTED ===")
   
   try {
     const payload = await getPayloadClient()
     const { vendorId, adminId, rejectionReason } = await request.json()
 
-    console.log("Rejection request details:", {
-      vendorId,
-      adminId,
-      hasRejectionReason: !!rejectionReason
-    })
 
     if (!vendorId) {
       console.error("Missing vendorId")
@@ -43,8 +37,6 @@ export async function POST(request: NextRequest) {
         { status: 400, headers }
       )
     }
-
-    console.log("Fetching vendor details...")
     const existingVendor = await payload.findByID({
       collection: "vendors",
       id: vendorId,
@@ -58,14 +50,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Found vendor:", {
-      email: existingVendor.email,
-      storeName: existingVendor.storeName,
-      currentStatus: existingVendor.status
-    })
 
     if (existingVendor.status === "rejected") {
-      console.log("Vendor already rejected")
       return NextResponse.json(
         { 
           success: true, 
@@ -76,7 +62,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("Updating vendor status to rejected...")
     const vendor = await payload.update({
       collection: "vendors",
       id: vendorId,
@@ -85,8 +70,6 @@ export async function POST(request: NextRequest) {
         rejectionReason: rejectionReason,
       },
     })
-
-    console.log("Vendor status updated successfully")
 
     // Send rejection email using Payload's email system
     console.log("Sending rejection email...")
@@ -189,7 +172,6 @@ export async function POST(request: NextRequest) {
       console.log("Continuing despite email failure...")
     }
 
-    console.log("=== VENDOR REJECTION COMPLETED SUCCESSFULLY ===\n")
 
     return NextResponse.json(
       {

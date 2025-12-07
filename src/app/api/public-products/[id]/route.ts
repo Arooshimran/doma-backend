@@ -17,9 +17,7 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest, context: any) {
   const headers = corsHeaders(request)
   try {
-    const { params } = context;
-    console.log('Fetching product by ID:', params.id)
-    
+    const { params } = context;    
     const payload = await getPayloadClient()
 
     const product = await payload.findByID({
@@ -30,14 +28,11 @@ export async function GET(request: NextRequest, context: any) {
     })
 
     if (!product) {
-      console.log('Product not found:', params.id)
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404, headers }
       )
     }
-
-    console.log('Product found:', { id: product.id, title: product.title, vendor: product.vendor })
     
     return NextResponse.json(product, { headers })
   } catch (error) {
