@@ -235,36 +235,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Normalize shipping address: ensure we have a 'name' field
-    const shippingAddress = { ...body.shippingAddress }
-    if (shippingAddress) {
-      // If we have firstName/lastName but no name, combine them
-      if ((shippingAddress.firstName || shippingAddress.lastName) && !shippingAddress.name) {
-        const firstName = shippingAddress.firstName?.trim() || ''
-        const lastName = shippingAddress.lastName?.trim() || ''
-        shippingAddress.name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer'
-      }
-      // If we have neither 'name' nor 'firstName'/'lastName', use default
-      else if (!shippingAddress.name) {
-        shippingAddress.name = 'Customer'
-      }
-    }
-
-    // Normalize billing address if provided
-    let billingAddress = body.billingAddress ? { ...body.billingAddress } : null
-    if (billingAddress) {
-      // If we have firstName/lastName but no name, combine them
-      if ((billingAddress.firstName || billingAddress.lastName) && !billingAddress.name) {
-        const firstName = billingAddress.firstName?.trim() || ''
-        const lastName = billingAddress.lastName?.trim() || ''
-        billingAddress.name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer'
-      }
-      // If we have neither 'name' nor 'firstName'/'lastName', use default
-      else if (!billingAddress.name) {
-        billingAddress.name = 'Customer'
-      }
-    }
-
     const orderNumber = generateOrderNumber()
     const order = await payload.create({
       collection: "orders",
@@ -277,8 +247,8 @@ export async function POST(request: NextRequest) {
         paymentMethod: body.paymentMethod,
         paymentId: body.paymentId,
         items: body.items,
-        shippingAddress,
-        billingAddress,
+        shippingAddress: body.shippingAddress,
+        billingAddress: body.billingAddress,
         tax: body.tax ?? body.totals?.tax ?? 0,
         shippingCost: body.shippingCost ?? body.totals?.shipping ?? 0,
         subtotal: body.subtotal ?? body.totals?.subtotal,

@@ -104,7 +104,8 @@ const Orders: CollectionConfig = {
       type: "group",
       required: true,
       fields: [
-        { name: "name", type: "text", required: true },
+        { name: "firstName", type: "text", required: true },
+        { name: "lastName", type: "text", required: true },
         { name: "street", type: "text", required: true },
         { name: "city", type: "text", required: true },
         { name: "state", type: "text" },
@@ -118,7 +119,8 @@ const Orders: CollectionConfig = {
       type: "group",
       admin: { description: "Optional - defaults to shipping address" },
       fields: [
-        { name: "name", type: "text" },
+        { name: "firstName", type: "text" },
+        { name: "lastName", type: "text" },
         { name: "street", type: "text" },
         { name: "city", type: "text" },
         { name: "state", type: "text" },
@@ -229,38 +231,6 @@ const Orders: CollectionConfig = {
     beforeValidate: [
       async ({ data, req, operation }) => {
         if (!data || !req?.payload) return data
-
-        // Normalize shippingAddress: convert firstName/lastName to name if needed
-        if (data.shippingAddress) {
-          if ((data.shippingAddress.firstName || data.shippingAddress.lastName) && !data.shippingAddress.name) {
-            const firstName = data.shippingAddress.firstName?.trim() || ''
-            const lastName = data.shippingAddress.lastName?.trim() || ''
-            data.shippingAddress.name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer'
-            // Remove firstName/lastName to avoid validation issues
-            delete data.shippingAddress.firstName
-            delete data.shippingAddress.lastName
-          }
-          // Ensure name exists
-          if (!data.shippingAddress.name) {
-            data.shippingAddress.name = 'Customer'
-          }
-        }
-
-        // Normalize billingAddress: convert firstName/lastName to name if needed
-        if (data.billingAddress) {
-          if ((data.billingAddress.firstName || data.billingAddress.lastName) && !data.billingAddress.name) {
-            const firstName = data.billingAddress.firstName?.trim() || ''
-            const lastName = data.billingAddress.lastName?.trim() || ''
-            data.billingAddress.name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer'
-            // Remove firstName/lastName to avoid validation issues
-            delete data.billingAddress.firstName
-            delete data.billingAddress.lastName
-          }
-          // Ensure name exists if billingAddress is provided
-          if (!data.billingAddress.name) {
-            data.billingAddress.name = 'Customer'
-          }
-        }
 
         const payload = req.payload
         if (!Array.isArray(data.items) || data.items.length === 0) {
