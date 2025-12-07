@@ -7,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
   })
 
-// Helper: extract customer ID from JWT token
 const getCustomerIdFromToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("JWT ")) return null
@@ -23,7 +22,6 @@ const getCustomerIdFromToken = async (request: NextRequest): Promise<string | nu
   }
 }
 
-// OPTIONS handler
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -71,7 +69,6 @@ export async function GET(request: NextRequest) {
       status: customer.status,
     })
     
-    // Return complete customer profile with proper defaults
     const customerProfile = {
       id: customer.id,
       email: customer.email,
@@ -102,7 +99,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT - Update customer profile
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
@@ -133,7 +129,6 @@ export async function PUT(request: NextRequest) {
     
     const payload = await getPayloadClient()
     
-    // Prepare update data - only include fields that should be updated
     const updateData: any = {}
     
     if (body.Name !== undefined) {
@@ -159,7 +154,6 @@ export async function PUT(request: NextRequest) {
     
     console.log("Customer updated successfully:", updatedCustomer.id)
     
-    // Return complete updated profile
     const customerProfile = {
       id: updatedCustomer.id,
       email: updatedCustomer.email,
@@ -181,7 +175,6 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error("Error updating customer profile:", error)
     
-    // Enhanced error handling
     let errorMessage = "Failed to update customer profile"
     let statusCode = 500
     

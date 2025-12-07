@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Title is optional, but if provided must be a valid string
     if (title !== undefined && (typeof title !== "string" || title.trim().length === 0)) {
       return NextResponse.json(
         { error: "title must be a non-empty string if provided" },
@@ -69,7 +68,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if customer already reviewed this product
     const existingReview = await payload.find({
       collection: COLLECTION_SLUGS.REVIEWS,
       where: {
@@ -89,7 +87,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Verify product exists
     const product = await payload
       .findByID({
         collection: COLLECTION_SLUGS.PRODUCTS,
@@ -106,7 +103,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create review (hooks will verify purchase and set verifiedPurchase)
     const reviewData: any = {
       product: productId,
       customer: requester.id,
@@ -114,7 +110,6 @@ export async function POST(request: NextRequest) {
       description: description.trim(),
     }
 
-    // Only include title if provided
     if (title && typeof title === "string" && title.trim().length > 0) {
       reviewData.title = title.trim()
     }
@@ -133,9 +128,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating review:", error)
     
-    // Return more specific error messages
     if (error instanceof Error) {
-      // Check for purchase verification errors
       if (error.message.includes("You can only review products") || 
           error.message.includes("Unable to verify purchase")) {
         return NextResponse.json(
@@ -146,7 +139,6 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // Check for validation errors
       if (error.message.includes("required")) {
         return NextResponse.json(
           {

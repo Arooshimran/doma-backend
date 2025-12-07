@@ -7,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, PUT, OPTIONS",
   })
 
-// Helper: extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("JWT ")) return null
@@ -23,7 +22,6 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
   }
 }
 
-// OPTIONS handler
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -50,11 +48,10 @@ export async function GET(request: NextRequest) {
     
     const payload = await getPayloadClient()
     
-    // ENHANCED: Fetch vendor with populated storeLogo
     const vendor = await payload.findByID({
       collection: "vendors",
       id: vendorId,
-      populate: ["storeLogo"], // Populate the storeLogo relationship
+      populate: ["storeLogo"],
       overrideAccess: true,
     })
     
@@ -74,7 +71,6 @@ export async function GET(request: NextRequest) {
       hasLogo: !!vendor.storeLogo
     })
     
-    // ENHANCED: Return complete vendor profile with proper defaults
     const vendorProfile = {
       id: vendor.id,
       email: vendor.email,
@@ -84,7 +80,6 @@ export async function GET(request: NextRequest) {
       status: vendor.status || 'pending',
       role: vendor.role || 'vendor',
       
-      // ENHANCED: Ensure contactInfo has proper structure
       contactInfo: {
         phone: vendor.contactInfo?.phone || '',
         address: vendor.contactInfo?.address || '',
@@ -92,14 +87,12 @@ export async function GET(request: NextRequest) {
         country: vendor.contactInfo?.country || ''
       },
       
-      // ENHANCED: Ensure businessInfo has proper structure
       businessInfo: {
         businessLicense: vendor.businessInfo?.businessLicense || '',
         taxId: vendor.businessInfo?.taxId || '',
         businessType: vendor.businessInfo?.businessType || ''
       },
       
-      // ENHANCED: Handle storeLogo properly (could be populated object or just ID)
       storeLogo: vendor.storeLogo ? {
         id: typeof vendor.storeLogo === 'object' ? vendor.storeLogo.id : vendor.storeLogo,
         url: typeof vendor.storeLogo === 'object' ? vendor.storeLogo.url : '',
@@ -158,7 +151,6 @@ export async function PUT(request: NextRequest) {
     }
     console.log("Update data received:", JSON.stringify(body, null, 2))
     
-    // Validate required fields
     if (!body.storeName?.trim()) {
       return NextResponse.json(
         { error: "Store name is required" },
@@ -168,7 +160,6 @@ export async function PUT(request: NextRequest) {
     
     const payload = await getPayloadClient()
     
-    // Prepare update data - only include fields that should be updated
     const updateData: any = {
       storeName: body.storeName.trim(),
       storeDescription: body.storeDescription || '',
@@ -185,16 +176,12 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    // Handle storeLogo - only update if provided
     if (body.storeLogo !== undefined) {
       if (body.storeLogo === null) {
-        // Remove logo
         updateData.storeLogo = null
       } else if (typeof body.storeLogo === 'string') {
-        // Logo ID provided
         updateData.storeLogo = body.storeLogo
       } else if (body.storeLogo && body.storeLogo.id) {
-        // Logo object with ID provided
         updateData.storeLogo = body.storeLogo.id
       }
     }
@@ -205,13 +192,12 @@ export async function PUT(request: NextRequest) {
       collection: "vendors",
       id: vendorId,
       data: updateData,
-      populate: ["storeLogo"], // Populate storeLogo in response
+      populate: ["storeLogo"],
       overrideAccess: true,
     })
     
     console.log("Vendor updated successfully:", updatedVendor.id)
     
-    // ENHANCED: Return complete updated profile with proper structure
     const vendorProfile = {
       id: updatedVendor.id,
       email: updatedVendor.email,
@@ -234,7 +220,6 @@ export async function PUT(request: NextRequest) {
         businessType: updatedVendor.businessInfo?.businessType || ''
       },
       
-      // Handle populated storeLogo
       storeLogo: updatedVendor.storeLogo ? {
         id: typeof updatedVendor.storeLogo === 'object' ? updatedVendor.storeLogo.id : updatedVendor.storeLogo,
         url: typeof updatedVendor.storeLogo === 'object' ? updatedVendor.storeLogo.url : '',
@@ -255,7 +240,6 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error("Error updating vendor profile:", error)
     
-    // Enhanced error handling
     let errorMessage = "Failed to update vendor profile"
     let statusCode = 500
     

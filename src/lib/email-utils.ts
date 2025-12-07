@@ -1,4 +1,3 @@
-// utils/email.ts
 import { Resend } from 'resend';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -6,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendVendorApprovalEmail(vendor: { email: string, name?: string }) {
   try {
     await resend.emails.send({
-      from: 'Doma <onboarding@resend.dev>', // domain must be verified in Resend
+      from: 'Doma <onboarding@resend.dev>', 
       to: vendor.email,
       subject: 'Vendor Approval Notification',
       html: `<p>Hi ${vendor.name || 'Vendor'},</p>

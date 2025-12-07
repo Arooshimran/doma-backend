@@ -10,25 +10,24 @@ const Products: CollectionConfig = {
   hooks: {
     beforeValidate: [
       ({ data }) => {
-        // Auto-generate slug from title if not provided
         if (data?.title && !data?.slug) {
           data.slug = (data.title as string)
             .toLowerCase()
             .trim()
-            .replace(/[^\w\s-]/g, '') // Remove special chars
-            .replace(/\s+/g, '-') // Replace spaces with hyphens
-            .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-            .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
-        }
+            .replace(/[^\w\s-]/g, '') 
+            .replace(/\s+/g, '-') 
+            .replace(/-+/g, '-') 
+            .replace(/^-+|-+$/g, ''); 
+          }
         return data;
       },
     ],
   },
   access: {
-    read: () => true, // Public read access
-    create: isAdminOrVendor, // Only admins and vendors can create
+    read: () => true,
+    create: isAdminOrVendor, 
     update: ({ req }) => {
-      // Admins can update any product, vendors can update their own
+      
       if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return { vendor: { equals: req.user.id } }
@@ -45,7 +44,6 @@ const Products: CollectionConfig = {
     },
   },
   fields: [
-    // Product Info
     {
       name: "title",
       label: "Product Name",
@@ -156,12 +154,7 @@ const Products: CollectionConfig = {
       name: "inventory",
       label: "Inventory",
       fields: [
-        // {
-        //   name: "trackQuantity",
-        //   label: "Track Stock?",
-        //   type: "checkbox",
-        //   defaultValue: true,
-        // },
+        
         {
           name: "quantity",
           label: "Available Quantity",
@@ -209,7 +202,6 @@ const Products: CollectionConfig = {
       },
     },
 
-    // Classification
     {
       name: "category",
       label: "Category",
@@ -219,18 +211,6 @@ const Products: CollectionConfig = {
         description: "Choose the most relevant category.",
       },
     },
-
-    // {
-    //   name: "tags",
-    //   label: "Tags (optional)",
-    //   type: "array",
-    //   fields: [
-    //     {
-    //       name: "tag",
-    //       type: "text",
-    //     },
-    //   ],
-    // },
 
     {
       name: "specifications",
@@ -259,7 +239,6 @@ const Products: CollectionConfig = {
     //   ],
     // },
 
-    // Visibility & Status
     {
       name: "status",
       label: "Product Status",
@@ -296,7 +275,6 @@ const Products: CollectionConfig = {
     //   },
     // },
 
-    // Hidden Vendor ID - set automatically
     {
       name: "vendor",
       type: "relationship",
@@ -317,15 +295,6 @@ const Products: CollectionConfig = {
       },
     },
 
-    // {
-    //   name: "sku",
-    //   label: "SKU Code (optional)",
-    //   type: "text",
-    //   unique: true,
-    //   admin: {
-    //     description: "Stock Keeping Unit - useful if you track SKUs.",
-    //   },
-    // },
     {
   name: "size",
   type: "select",

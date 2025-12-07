@@ -68,18 +68,16 @@ const Vendors: CollectionConfig = {
       views: {
         edit: {
           Default: {
-            // You can add quick action buttons here if needed
           },
         },
       },
     },
   },
 
-  // Enhanced hooks for email notifications
+  // hooks for email notifications
   hooks: {
     beforeChange: [
       async ({ data, req, operation }) => {
-        // Auto-generate store slug
         if (operation === "create" && data.storeName) {
           data.slug = data.storeName.toLowerCase().replace(/\s+/g, "-")
         }
@@ -102,7 +100,6 @@ const Vendors: CollectionConfig = {
             }
           } catch (emailError: any) {
             console.error("Hook email error:", emailError.message)
-            // Don't fail the update if email fails
           }
         }
       },
@@ -129,10 +126,9 @@ const Vendors: CollectionConfig = {
       ],
       defaultValue: "pending",
       required: true,
-      // Add admin-only access control
       access: {
         update: ({ req }) => {
-          // Only users (admins) can change status
+          // Only (admins) can change status
           return req.user?.collection === "users"
         },
       },
@@ -180,7 +176,6 @@ const Vendors: CollectionConfig = {
         ]},
       ],
     },
-    // Enhanced approval/rejection tracking
    
     {
       name: "approvalNote",
@@ -203,11 +198,9 @@ const Vendors: CollectionConfig = {
     },
   ],
 
-  // Control who can access what
   access: {
-    create: () => true, // Anyone can register as vendor
+    create: () => true,
     read: ({ req }) => {
-      // Users (admins) can see all, vendors can only see themselves
       if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return ownRecord({ req })
@@ -215,7 +208,6 @@ const Vendors: CollectionConfig = {
       return false
     },
     update: ({ req }) => {
-      // Users (admins) can update any vendor, vendors can update themselves (except status)
       if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return ownRecord({ req })
@@ -225,7 +217,7 @@ const Vendors: CollectionConfig = {
   },
 }
 
-// Enhanced email notification functions using Payload's email system
+// email notification functions
 async function sendVendorApprovalEmail(payload: any, vendor: any) {
   console.log(`Sending approval email to ${vendor.email}`)
   

@@ -24,7 +24,6 @@ const getCustomerIdFromToken = async (request: NextRequest): Promise<string | nu
   }
 }
 
-// OPTIONS handler
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -70,7 +69,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Validate new password length
     if (newPassword.length < 6) {
       return NextResponse.json(
         { error: "New password must be at least 6 characters long" },
@@ -88,7 +86,6 @@ export async function POST(request: NextRequest) {
     
     const payload = await getPayloadClient()
     
-    // Get customer to retrieve email for password verification
     const customer = await payload.findByID({
       collection: COLLECTION_SLUGS.CUSTOMERS,
       id: customerId,
@@ -102,7 +99,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Verify current password by attempting to login
     try {
       await payload.login({
         collection: COLLECTION_SLUGS.CUSTOMERS,

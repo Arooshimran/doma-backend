@@ -20,7 +20,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   })
 
-// OPTIONS handler for CORS preflight
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -44,7 +43,6 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "12", 10)
     const depth = parseInt(searchParams.get("depth") || "1", 10)
 
-    // Handle where[slug][equals] parameter
     const slugFilter = searchParams.get("where[slug][equals]")
     const idFilter = searchParams.get("where[id][equals]")
 
@@ -52,12 +50,10 @@ export async function GET(request: NextRequest) {
       status: { equals: "published" },
     }
 
-    // Add slug filter if present
     if (slugFilter) {
       where.slug = { equals: slugFilter }
     }
 
-    // Add id filter if present
     if (idFilter) {
       where.id = { equals: idFilter }
     }
@@ -107,7 +103,6 @@ export async function POST(request: NextRequest) {
   try {
     console.log("POST /api/products received")
 
-    // Check authorization - only admins and vendors can create
     const isAuthorized = isAdminOrVendor({ req: request as any })
     if (!isAuthorized) {
       return NextResponse.json(
@@ -138,7 +133,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Ensure category and vendor are passed as string IDs
     const data: any = {
       title: body.title,
       category: typeof body.category === "object" ? body.category.id : body.category,
@@ -184,7 +178,6 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    // Check authorization - only admins and vendors can update
     const isAuthorized = isAdminOrVendor({ req: request as any })
     if (!isAuthorized) {
       return NextResponse.json(
@@ -228,7 +221,6 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    // Check authorization - only admins and vendors can delete
     const isAuthorized = isAdminOrVendor({ req: request as any })
     if (!isAuthorized) {
       return NextResponse.json(

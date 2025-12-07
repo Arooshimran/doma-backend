@@ -61,7 +61,6 @@ const Orders: CollectionConfig = {
       return getCustomerAccessFilter(req)
     },
     delete: ({ req }) => {
-      // Allow admins to delete orders
       if (isAdmin({ req })) return true
       return false
     },

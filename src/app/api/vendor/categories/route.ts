@@ -1,4 +1,3 @@
-// app/api/vendor/categories/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
@@ -8,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   })
 
-// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -27,12 +25,11 @@ export async function GET(request: NextRequest) {
     const categories = await payload.find({
       collection: "categories",
       where: {
-        // Only get active categories, or remove this filter if you want all
         // isActive: { equals: true },
       },
-      sort: "name", // Sort alphabetically
-      limit: 100, // Adjust as needed
-      overrideAccess: true, // Bypass access control
+      sort: "name", 
+      limit: 100, 
+      overrideAccess: true, 
     })
 
     console.log("Categories fetched successfully:", categories.docs.length)
@@ -82,7 +79,6 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Generate slug from name
     const slug = name.toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')

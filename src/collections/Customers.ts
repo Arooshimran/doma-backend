@@ -66,7 +66,6 @@ const Customers: CollectionConfig = {
 
   fields: [
 
-    // 🔥 ADDED → required so frontend can distinguish vendor/customer
     {
       name: "role",
       type: "select",

@@ -1,4 +1,3 @@
-// src/app/api/admin/vendors/reject/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
@@ -29,7 +28,6 @@ export async function POST(request: NextRequest) {
       hasRejectionReason: !!rejectionReason
     })
 
-    // Validate required fields
     if (!vendorId) {
       console.error("Missing vendorId")
       return NextResponse.json(
@@ -46,7 +44,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get vendor details first
     console.log("Fetching vendor details...")
     const existingVendor = await payload.findByID({
       collection: "vendors",
@@ -67,7 +64,6 @@ export async function POST(request: NextRequest) {
       currentStatus: existingVendor.status
     })
 
-    // Check if already rejected
     if (existingVendor.status === "rejected") {
       console.log("Vendor already rejected")
       return NextResponse.json(
@@ -80,7 +76,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update vendor status
     console.log("Updating vendor status to rejected...")
     const vendor = await payload.update({
       collection: "vendors",
@@ -157,7 +152,6 @@ export async function POST(request: NextRequest) {
           </body>
           </html>
         `,
-        // Plain text fallback
         text: `
           Update on your vendor application
           
@@ -192,7 +186,6 @@ export async function POST(request: NextRequest) {
       } else {
         console.error("Failed to send rejection email:", emailError)
       }
-      // Don't fail the whole request if email fails
       console.log("Continuing despite email failure...")
     }
 

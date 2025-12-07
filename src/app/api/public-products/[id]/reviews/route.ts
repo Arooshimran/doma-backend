@@ -41,7 +41,6 @@ export async function GET(
     const limit = Number.parseInt(url.searchParams.get("limit") || "10")
     const sort = url.searchParams.get("sort") || "-createdAt"
 
-    // Verify product exists
     const product = await payload
       .findByID({
         collection: COLLECTION_SLUGS.PRODUCTS,

@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Handle preflight requests
 export async function OPTIONS(request: NextRequest) {
   return NextResponse.json(
     {},

@@ -33,9 +33,7 @@ const Media: CollectionConfig = {
   },
 
   hooks: {
-    // ---------------------------------------------------
     // Replace local URL with Cloudinary URL when reading
-    // ---------------------------------------------------
     afterRead: [
       ({ doc }) => {
         if (doc?.cloudinaryUrl) doc.url = doc.cloudinaryUrl
@@ -43,9 +41,7 @@ const Media: CollectionConfig = {
       },
     ],
 
-    // ---------------------------------------------------
     // Upload to Cloudinary before persisting the document
-    // ---------------------------------------------------
     beforeChange: [
       async ({ data, req, operation, originalDoc }) => {
         const fileBuffer = req.file?.data
@@ -106,9 +102,7 @@ const Media: CollectionConfig = {
       },
     ],
 
-    // ---------------------------------------------------
     // Delete from Cloudinary when media deleted
-    // ---------------------------------------------------
     afterDelete: [
       async ({ req, doc }) => {
         try {

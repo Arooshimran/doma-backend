@@ -1,4 +1,3 @@
-// app/api/upload/media/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
@@ -8,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -69,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024 // 10MB in bytes
+    const maxSize = 10 * 1024 * 1024 
     if (file.size > maxSize) {
       console.log("File too large:", file.size)
       return NextResponse.json({

@@ -1,4 +1,3 @@
-// src/app/api/admin/vendors/approve/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
@@ -29,7 +28,6 @@ export async function POST(request: NextRequest) {
       hasApprovalNote: !!approvalNote
     })
 
-    // Validate required fields
     if (!vendorId) {
       console.error("Missing vendorId")
       return NextResponse.json(
@@ -38,7 +36,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get vendor details first
     console.log("Fetching vendor details...")
     const existingVendor = await payload.findByID({
       collection: "vendors",
@@ -59,7 +56,6 @@ export async function POST(request: NextRequest) {
       currentStatus: existingVendor.status
     })
 
-    // Check if already approved
     if (existingVendor.status === "approved") {
       console.log("Vendor already approved")
       return NextResponse.json(
@@ -72,7 +68,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update vendor status
     console.log("Updating vendor status to approved...")
     const vendor = await payload.update({
       collection: "vendors",
@@ -142,7 +137,6 @@ export async function POST(request: NextRequest) {
           </body>
           </html>
         `,
-        // Plain text fallback
         text: `
           Congratulations! Your vendor application has been approved!
           
@@ -166,7 +160,6 @@ export async function POST(request: NextRequest) {
       } else {
         console.error("Failed to send approval email:", emailError)
       }
-      // Don't fail the whole request if email fails
       console.log("Continuing despite email failure...")
     }
 

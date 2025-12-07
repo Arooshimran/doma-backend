@@ -7,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -36,12 +35,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get Payload client
     console.log("Getting Payload client...")
     const payload = await getPayloadClient()
     console.log("Payload client obtained")
 
-    // First, let's check if the vendor exists
     console.log("Checking if vendor exists in database...")
     try {
       const existingVendor = await payload.find({
@@ -74,7 +71,6 @@ export async function POST(request: NextRequest) {
         role: vendor.role,
       })
 
-      // Check vendor status before attempting login
       if (vendor.status === "pending") {
         console.log("Vendor status: pending")
         return NextResponse.json(
@@ -125,7 +121,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Login successful, user authenticated")
 
-    // Check user status
     if (result?.user?.status === "pending") {
       console.log("User status: pending")
       return NextResponse.json(
@@ -158,7 +153,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Login successful, user status approved")
 
-    // Return success response
     return NextResponse.json(
       {
         success: true,
@@ -183,7 +177,6 @@ export async function POST(request: NextRequest) {
       name: err.name
     })
 
-    // Handle specific Payload errors
     if (err.message?.includes('Invalid login credentials') || 
         err.message?.includes('email or password provided is incorrect')) {
       console.log("Authentication failed - incorrect credentials")
@@ -210,7 +203,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generic server error
     return NextResponse.json(
       { 
         error: "Login failed", 

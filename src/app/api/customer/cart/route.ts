@@ -24,7 +24,6 @@ const getCustomerIdFromToken = async (request: NextRequest): Promise<string | nu
   }
 }
 
-// OPTIONS handler
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,

@@ -7,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, OPTIONS",
   })
 
-// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -19,7 +18,6 @@ export async function GET(request: NextRequest) {
   console.log("Processing vendor status check request...")
 
   try {
-    // Get vendor email from query params
     const { searchParams } = new URL(request.url)
     const email = searchParams.get("email")
 
@@ -36,12 +34,10 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Get Payload client
     console.log("Getting Payload client...")
     const payload = await getPayloadClient()
     console.log("Payload client obtained")
 
-    // Check if the vendor exists
     console.log("Checking vendor status in database...")
     try {
       const vendors = await payload.find({
@@ -120,7 +116,6 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Generic server error
     return NextResponse.json(
       { 
         error: "Failed to check vendor status", 

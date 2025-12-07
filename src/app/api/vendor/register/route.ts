@@ -7,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   console.log("Handling OPTIONS preflight request for registration")
   return new NextResponse(null, {
@@ -20,7 +19,6 @@ export async function POST(request: NextRequest) {
   console.log("\n=== VENDOR REGISTRATION ATTEMPT STARTED ===")
 
   try {
-    // Parse request body
     console.log("Parsing registration data...")
     const vendorData = await request.json()
     
@@ -45,7 +43,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Get Payload client
     console.log("Getting Payload client...")
     const payload = await getPayloadClient()
     console.log("Payload client obtained")
@@ -82,17 +79,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Prepare vendor data with defaults
     const vendorPayload = {
       ...vendorData,
-      status: "pending", // Set default status to pending
-      role: "vendor",    // Ensure role is set
-      // Generate slug from store name
+      status: "pending", 
+      role: "vendor",    
       slug: vendorData.storeName
         .toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
-        .replace(/\s+/g, '-')         // Replace spaces with hyphens
-        .replace(/-+/g, '-')          // Replace multiple hyphens with single
+        .replace(/[^a-z0-9\s-]/g, '') 
+        .replace(/\s+/g, '-')         
+        .replace(/-+/g, '-')          
         .trim(),
     }
 
@@ -104,7 +99,6 @@ export async function POST(request: NextRequest) {
       role: vendorPayload.role
     })
 
-    // Create new vendor
     console.log("Creating new vendor...")
     const startTime = Date.now()
     
@@ -123,7 +117,6 @@ export async function POST(request: NextRequest) {
 
     console.log("=== VENDOR REGISTRATION COMPLETED SUCCESSFULLY ===\n")
 
-    // Return success response immediately
     return NextResponse.json(
       {
         success: true,
@@ -152,12 +145,10 @@ export async function POST(request: NextRequest) {
       stack: error.stack?.split('\n').slice(0, 3)
     })
 
-    // Handle specific error types
     let errorMessage = "Registration failed"
     let statusCode = 500
     let errorDetails: any = undefined
 
-    // Handle duplicate email error (MongoDB/Mongoose specific)
     if (error.message?.includes('duplicate') || 
         error.message?.includes('E11000') || 
         error.code === 11000) {
@@ -165,7 +156,6 @@ export async function POST(request: NextRequest) {
       statusCode = 409
       console.log("Duplicate email error detected")
     }
-    // Handle validation errors
     else if (error.message?.includes('validation') || 
              error.name === 'ValidationError') {
       errorMessage = "Validation error"
@@ -175,19 +165,16 @@ export async function POST(request: NextRequest) {
       }
       console.log("Validation error detected")
     }
-    // Handle required field errors
     else if (error.message?.includes('required') || 
              error.message?.includes('Path `') && error.message?.includes('` is required')) {
       errorMessage = "Missing required fields"
       statusCode = 400
       console.log("Required field error detected")
     }
-    // Handle Payload-specific errors
     else if (error.message?.includes('Cannot overwrite')) {
       errorMessage = "Server restart required. Please restart your backend server."
       console.log("SOLUTION: Restart your Next.js development server")
     }
-    // Handle database connection errors
     else if (error.message?.includes('connection') || 
              error.message?.includes('ECONNREFUSED')) {
       errorMessage = "Database connection error"

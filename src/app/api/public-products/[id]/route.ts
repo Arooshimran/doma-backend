@@ -7,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   })
 
-// Handle preflight OPTIONS request
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -27,7 +26,7 @@ export async function GET(request: NextRequest, context: any) {
       collection: "products",
       id: params.id,
       populate: ["category", "vendor", "images", "threeDModel"],
-      overrideAccess: true, // Allow access regardless of collection access rules
+      overrideAccess: true, 
     })
 
     if (!product) {

@@ -11,7 +11,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Helper: extract customer ID from JWT token
 const getCustomerIdFromToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("JWT ")) return null
@@ -27,7 +26,6 @@ const getCustomerIdFromToken = async (request: NextRequest): Promise<string | nu
   }
 }
 
-// OPTIONS handler
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -65,12 +63,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // --------------------------
-    // FIXED SHIPPING ADDRESS LOGIC
-    // --------------------------
     let shippingAddress = body.shippingAddress || {}
 
-    // Fetch customer if needed
     let customer: any = null
     try {
       customer = await payload.findByID({
@@ -82,7 +76,6 @@ export async function POST(request: NextRequest) {
       customer = null
     }
 
-    // Extract customer name safely
     const rawName =
       (customer?.name || customer?.Name || "").trim() || "Customer"
 
@@ -90,12 +83,10 @@ export async function POST(request: NextRequest) {
     const fallbackFirstName = nameParts[0] || "Customer"
     const fallbackLastName = nameParts.slice(1).join(" ") || ""
 
-    // Extract default address if exists
     const defaultAddress = customer?.addresses?.find?.(
       (addr: any) => addr?.isDefault
     ) || {}
 
-    // Build SAFE shipping address (never null)
     shippingAddress = {
       firstName:
         shippingAddress.firstName ||
@@ -133,8 +124,6 @@ export async function POST(request: NextRequest) {
         customer?.phone ||
         "",
     }
-
-    // Validation
     if (!shippingAddress.street || !shippingAddress.city || !shippingAddress.country) {
       return NextResponse.json(
         { error: "Shipping address with street, city, and country is required" },
@@ -144,9 +133,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Final shipping address:", shippingAddress)
 
-    // --------------------------
-    // ITEMS PROCESSING (unchanged)
-    // --------------------------
     const orderItems: any[] = []
 
     if (body.items && Array.isArray(body.items) && body.items.length > 0) {
@@ -294,7 +280,7 @@ export async function POST(request: NextRequest) {
     paymentId: body.paymentId || null,
     items: orderItems,
     shippingAddress,
-    billingAddress: body.billingAddress || {},   // <-- FIXED HERE
+    billingAddress: body.billingAddress || {},   
     subtotal: Number(subtotal.toFixed(2)),
     tax: Number(tax.toFixed(2)),
     shippingCost: Number(shippingCost.toFixed(2)),
@@ -306,7 +292,6 @@ export async function POST(request: NextRequest) {
 
     console.log("Order created:", order.id)
 
-    // Cart cleanup
     try {
       const cart = await findCartByUserId(payload, customerId, 1)
 

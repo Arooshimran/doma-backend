@@ -8,7 +8,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
   })
 
-// Helper function to extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
   try {
     const authHeader = request.headers.get("Authorization")
@@ -20,12 +19,10 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
     const token = authHeader.substring(4)
 
     try {
-      // Simple JWT decode without verification
       const base64Payload = token.split('.')[1]
       const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf-8')
       const decoded = JSON.parse(decodedPayload)
       
-      // Check if this is a vendor token
       if (decoded.collection !== 'vendors') {
         return null
       }
@@ -76,7 +73,6 @@ export async function GET(request: NextRequest) {
 
     console.log("Query params:", { page, limit, status })
 
-    // First, get all products belonging to this vendor
     const vendorProducts = await payload.find({
       collection: "products",
       where: {
@@ -84,7 +80,7 @@ export async function GET(request: NextRequest) {
           equals: vendorId,
         },
       },
-      limit: 1000, // Get all vendor products
+      limit: 1000,
       overrideAccess: true,
     })
 
@@ -92,7 +88,6 @@ export async function GET(request: NextRequest) {
     console.log("Vendor has", vendorProductIds.length, "products")
 
     if (vendorProductIds.length === 0) {
-      // No products = no orders
       return NextResponse.json({
         docs: [],
         totalDocs: 0,
@@ -106,28 +101,25 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Build query to find orders containing vendor's products
     const where: any = {
       "items.product": {
         in: vendorProductIds,
       },
     }
 
-    // Filter by status if specified
     if (status !== "all") {
       where.orderStatus = { equals: status }
     }
 
     console.log("Query where clause:", JSON.stringify(where, null, 2))
 
-    // Fetch orders with vendor's products
     const orders = await payload.find({
       collection: "orders",
       where,
       page,
       limit,
       sort: "-createdAt",
-      depth: 2, // Populate related fields
+      depth: 2,
       overrideAccess: true,
     })
 
@@ -156,13 +148,10 @@ export async function POST(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
     const payload = await getPayloadClient()
-    // Determine content type first. Admin UI posts multipart/form-data
     const contentType = request.headers.get("content-type") || ""
     let body: any = null
 
     if (contentType.includes("multipart/form-data")) {
-      // Admin panel sends a multipart form where the JSON payload is in the
-      // `_payload` field. Use formData() to extract it.
       try {
         const form = await request.formData()
         const payloadField = form.get("_payload") ?? form.get("payload")
@@ -199,7 +188,6 @@ export async function POST(request: NextRequest) {
         )
       }
     } else {
-      // Expect application/json
       try {
         body = await request.json()
       } catch (parseError) {
@@ -266,21 +254,16 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// DELETE - Delete order(s)
-// This handler processes bulk deletes from Payload admin panel
-// Access control is handled by the Orders collection's delete access setting
+// DELETE - Delete order(s) - handles bulk deletes from Payload admin panel
 export async function DELETE(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
     const payload = await getPayloadClient()
     const { searchParams } = new URL(request.url)
     
-    // Parse the complex where structure from Payload admin panel query string
-    // Format: where[and][0][id][in][0]=id1&where[and][0][id][in][1]=id2
     const allParams = Object.fromEntries(searchParams.entries())
     let ids: string[] = []
     
-    // Check for bulk delete format
     if (allParams["where[and][0][id][in][0]"]) {
       let i = 0
       while (allParams[`where[and][0][id][in][${i}]`]) {
@@ -289,7 +272,6 @@ export async function DELETE(request: NextRequest) {
       }
     }
     
-    // Fallback: check for single ID
     if (ids.length === 0) {
       const id = searchParams.get("id")
       if (id) {
@@ -297,7 +279,6 @@ export async function DELETE(request: NextRequest) {
       }
     }
     
-    // Try to get from request body if not in query params
     if (ids.length === 0) {
       try {
         const body = await request.json().catch(() => null)
@@ -307,7 +288,6 @@ export async function DELETE(request: NextRequest) {
           ids = Array.isArray(body.where.id.in) ? body.where.id.in : [body.where.id.in]
         }
       } catch {
-        // No body or invalid JSON
       }
     }
 
@@ -318,7 +298,6 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Delete each order (Payload's access control will check permissions)
     const deletedIds: string[] = []
     const errors: string[] = []
     
@@ -327,7 +306,6 @@ export async function DELETE(request: NextRequest) {
         await payload.delete({
           collection: "orders",
           id,
-          // Don't use overrideAccess - let Payload's access control handle it
         })
         deletedIds.push(id)
       } catch (error) {

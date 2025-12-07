@@ -1,7 +1,6 @@
 import { mongooseAdapter } from '@payloadcms/db-mongodb'
 import { payloadCloudPlugin } from '@payloadcms/payload-cloud'
 import { lexicalEditor } from '@payloadcms/richtext-lexical'
-// CHANGE 1: Import the API Adapter (Not Nodemailer)
 import { resendAdapter } from '@payloadcms/email-resend' 
 import path from 'path'
 import { buildConfig } from 'payload'
@@ -30,9 +29,7 @@ export default buildConfig({
     },
   },
 
-  // === EMAIL CONFIGURATION (RESEND API) ===
-  // This uses HTTP (Port 443) instead of SMTP.
-  // It CANNOT be blocked by Render's firewalls.
+  // EMAIL CONFIGURATION (RESEND API)
   email: resendAdapter({
     defaultFromAddress: 'onboarding@resend.dev',
     defaultFromName: 'DOMA System',

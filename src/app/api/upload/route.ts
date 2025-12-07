@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayloadClient } from '@/lib/payload-client'
-// Restored to use Payload built-in upload handling
 
 export const config = { api: { bodyParser: false } }
 

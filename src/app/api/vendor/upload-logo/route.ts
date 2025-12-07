@@ -1,4 +1,3 @@
-// app/api/vendor/upload-logo/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getPayloadClient } from '@/lib/payload-client';
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers";
@@ -8,7 +7,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Helper to extract vendor ID from JWT token
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("JWT ")) return null
@@ -24,7 +22,6 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
   }
 }
 
-// OPTIONS handler for CORS preflight
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -38,7 +35,6 @@ export async function POST(request: NextRequest) {
   try {
     console.log("POST /api/vendor/upload-logo - Starting...")
     
-    // Verify vendor authentication
     const vendorId = await getVendorIdFromToken(request)
     if (!vendorId) {
       console.log("Unauthorized - Invalid or missing token")
@@ -97,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size (5MB max)
-    const maxSize = 5 * 1024 * 1024 // 5MB
+    const maxSize = 5 * 1024 * 1024 
     if (file.size > maxSize) {
       console.log("File too large:", file.size)
       return NextResponse.json(
@@ -110,11 +106,9 @@ export async function POST(request: NextRequest) {
     
     const payload = await getPayloadClient()
 
-    // Convert File to Buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
 
-    // Create a unique filename
     const timestamp = Date.now()
     const fileExtension = file.name.split('.').pop()
     const fileName = `vendor-logo-${vendorId}-${timestamp}.${fileExtension}`
@@ -122,7 +116,6 @@ export async function POST(request: NextRequest) {
     console.log("Uploading file:", fileName)
 
     try {
-      // Upload to Payload Media collection
       const mediaDoc = await payload.create({
         collection: 'media',
         data: {

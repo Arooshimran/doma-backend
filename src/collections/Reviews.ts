@@ -37,24 +37,17 @@ const Reviews: CollectionConfig = {
     defaultColumns: ["product", "customer", "rating", "verifiedPurchase", "createdAt"],
   },
   access: {
-    read: () => true, // All reviews are publicly readable
+    read: () => true, 
     create: ({ req }) => {
-      // Admins can create reviews, authenticated customers can create reviews
-      // Purchase verification is enforced in beforeValidate hook
-      // if (isAdmin({ req })) return true
       const user = getRequestUser(req)
       return user?.collection === COLLECTION_SLUGS.CUSTOMERS
     },
     update: ({ req }) => {
-      // Admins can update all
       if (isAdmin({ req })) return true
-      // Customers can only update their own reviews (which are for products they purchased)
       return customerAccessFilter(req)
     },
     delete: ({ req }) => {
-      // Admins can delete all
       if (isAdmin({ req })) return true
-      // Customers can only delete their own reviews (which are for products they purchased)
       return customerAccessFilter(req)
     },
   },
@@ -79,12 +72,10 @@ const Reviews: CollectionConfig = {
       hooks: {
         beforeChange: [
           ({ value, req, operation }) => {
-            // For customers, auto-fill their own ID
             const user = getRequestUser(req)
             if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && user?.id) {
               return String(user.id)
             }
-            // For admins, allow them to set any customer
             return value
           },
         ],
@@ -150,18 +141,15 @@ const Reviews: CollectionConfig = {
         const payload = req.payload
         const user = getRequestUser(req)
 
-        // Auto-fill customer from authenticated user (only for customers, not admins)
         if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && user?.id && !data.customer) {
           data.customer = String(user.id)
         }
 
-        // Verify purchase and set verifiedPurchase
         const productId = resolveRelationId(data.product)
         const customerId = resolveRelationId(data.customer ?? user?.id)
 
         if (productId && customerId) {
           try {
-            // Check if customer has any completed orders containing this product
             const orders = await payload.find({
               collection: COLLECTION_SLUGS.ORDERS,
               where: {
@@ -189,26 +177,22 @@ const Reviews: CollectionConfig = {
               if (hasPurchased) break
             }
 
-            // For customers (not admins), require purchase verification before allowing review creation
             if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && !hasPurchased) {
               throw new Error("You can only review products you have purchased. Please purchase this product first.")
             }
 
             data.verifiedPurchase = hasPurchased
           } catch (error) {
-            // If it's our custom error, re-throw it
             if (error instanceof Error && error.message.includes("You can only review products")) {
               throw error
             }
             console.error("Error verifying purchase:", error)
-            // For customers creating reviews, if we can't verify purchase, prevent creation
             if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
               throw new Error("Unable to verify purchase. You can only review products you have purchased.")
             }
             data.verifiedPurchase = false
           }
         } else if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
-          // If product or customer ID is missing for customer creation, prevent it
           throw new Error("Product and customer information is required to create a review.")
         }
 
@@ -224,13 +208,11 @@ const Reviews: CollectionConfig = {
 
         if (!productId) return
 
-        // Recalculate product average rating when review status changes
         await updateProductRating(payload, productId)
       },
     ],
     afterDelete: [
       async ({ doc, req }) => {
-        // Recalculate when review is deleted
         if (!doc?.product || !req?.payload) return
 
         const payload = req.payload
@@ -245,7 +227,6 @@ const Reviews: CollectionConfig = {
 
 async function updateProductRating(payload: any, productId: string) {
   try {
-    // Get all reviews for this product
     const reviews = await payload.find({
       collection: COLLECTION_SLUGS.REVIEWS,
       where: {
@@ -257,7 +238,6 @@ async function updateProductRating(payload: any, productId: string) {
     })
 
     if (reviews.docs.length === 0) {
-      // No reviews, reset rating
       await payload.update({
         collection: COLLECTION_SLUGS.PRODUCTS,
         id: productId,
@@ -278,7 +258,6 @@ async function updateProductRating(payload: any, productId: string) {
     const averageRating = Number((totalRating / reviews.docs.length).toFixed(2))
     const reviewCount = reviews.docs.length
 
-    // Update product with new rating
     await payload.update({
       collection: COLLECTION_SLUGS.PRODUCTS,
       id: productId,
