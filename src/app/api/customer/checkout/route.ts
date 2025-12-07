@@ -244,13 +244,13 @@ export async function POST(request: NextRequest) {
         paymentId: body.paymentId || null,
         items: orderItems,
         shippingAddress: {
-          firstName: shippingAddress.firstName || '',
-          lastName: shippingAddress.lastName || '',
-          street: shippingAddress.street,
-          city: shippingAddress.city,
-          state: shippingAddress.state || '',
-          country: shippingAddress.country,
-          phone: shippingAddress.phone || '',
+          firstName: shippingAddress.firstName?.trim() || 'Customer', // ← NEW
+          lastName: shippingAddress.lastName?.trim() || '',           // ← NEW
+          street: shippingAddress.street?.trim() || shippingAddress.street,  // ← NEW
+          city: shippingAddress.city?.trim() || shippingAddress.city,        // ← NEW
+          state: shippingAddress.state?.trim() || '',
+          country: shippingAddress.country || 'Pakistan',             // ← NEW
+          phone: shippingAddress.phone?.trim() || shippingAddress.phone || '', // ← NEW
         },
         billingAddress: body.billingAddress || null,
         subtotal: Number(subtotal.toFixed(2)),

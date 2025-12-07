@@ -209,9 +209,7 @@ export interface Customer {
   id: string;
   role?: 'customer' | null;
   googleId?: string | null;
-  firebaseUid?: string | null;
-  firstName?: string | null;
-  lastName?: string | null;
+  Name?: string | null;
   phone?: string | null;
   addresses?:
     | {
@@ -322,6 +320,13 @@ export interface Product {
    * Choose the most relevant category.
    */
   category?: (string | null) | Category;
+  specifications?:
+    | {
+        name: string;
+        value: string;
+        id?: string | null;
+      }[]
+    | null;
   status?: ('draft' | 'published' | 'pending' | 'rejected' | 'out-of-stock') | null;
   featured?: boolean | null;
   /**
@@ -705,9 +710,7 @@ export interface UsersSelect<T extends boolean = true> {
 export interface CustomersSelect<T extends boolean = true> {
   role?: T;
   googleId?: T;
-  firebaseUid?: T;
-  firstName?: T;
-  lastName?: T;
+  Name?: T;
   phone?: T;
   addresses?:
     | T
@@ -819,6 +822,13 @@ export interface ProductsSelect<T extends boolean = true> {
       };
   threeDModel?: T;
   category?: T;
+  specifications?:
+    | T
+    | {
+        name?: T;
+        value?: T;
+        id?: T;
+      };
   status?: T;
   featured?: T;
   vendor?: T;
