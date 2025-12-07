@@ -284,25 +284,25 @@ export async function POST(request: NextRequest) {
     console.log("Creating order...")
 
     const order = await payload.create({
-      collection: COLLECTION_SLUGS.ORDERS,
-      data: {
-        orderNumber,
-        customer: customerId,
-        orderStatus: "pending",
-        paymentStatus: body.paymentStatus || "pending",
-        paymentMethod: body.paymentMethod || "cod",
-        paymentId: body.paymentId || null,
-        items: orderItems,
-        shippingAddress,
-        billingAddress: body.billingAddress || null,
-        subtotal: Number(subtotal.toFixed(2)),
-        tax: Number(tax.toFixed(2)),
-        shippingCost: Number(shippingCost.toFixed(2)),
-        total: Number(total.toFixed(2)),
-      },
-      depth: 2,
-      overrideAccess: true,
-    })
+  collection: COLLECTION_SLUGS.ORDERS,
+  data: {
+    orderNumber,
+    customer: customerId,
+    orderStatus: "pending",
+    paymentStatus: body.paymentStatus || "pending",
+    paymentMethod: body.paymentMethod || "cod",
+    paymentId: body.paymentId || null,
+    items: orderItems,
+    shippingAddress,
+    billingAddress: body.billingAddress || {},   // <-- FIXED HERE
+    subtotal: Number(subtotal.toFixed(2)),
+    tax: Number(tax.toFixed(2)),
+    shippingCost: Number(shippingCost.toFixed(2)),
+    total: Number(total.toFixed(2)),
+  },
+  depth: 2,
+  overrideAccess: true,
+})
 
     console.log("Order created:", order.id)
 
