@@ -108,8 +108,8 @@ const Orders: CollectionConfig = {
       type: "group",
       required: true,
       fields: [
-        { name: "firstName", type: "text", required: true },
-        { name: "lastName", type: "text", required: true },
+        { name: "firstName", type: "text", required: false },
+        { name: "lastName", type: "text", required: false},
         { name: "street", type: "text", required: true },
         { name: "city", type: "text", required: true },
         { name: "state", type: "text" },
