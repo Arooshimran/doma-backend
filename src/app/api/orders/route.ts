@@ -5,7 +5,7 @@ import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
 const corsHeaders = (request?: NextRequest) =>
   buildCorsHeadersFromRequest(request, {
-    "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
   })
 
 const getVendorIdFromToken = async (request: NextRequest): Promise<string | null> => {
@@ -28,6 +28,38 @@ const getVendorIdFromToken = async (request: NextRequest): Promise<string | null
       }
       
       return decoded.id
+    } catch (decodeError) {
+      return null
+    }
+  } catch (error) {
+    console.error("Token verification error:", error)
+    return null
+  }
+}
+
+const getRequesterFromToken = async (request: NextRequest): Promise<{ id: string; collection: string } | null> => {
+  try {
+    const authHeader = request.headers.get("Authorization")
+    
+    if (!authHeader || !authHeader.startsWith("JWT ")) {
+      return null
+    }
+
+    const token = authHeader.substring(4)
+
+    try {
+      const base64Payload = token.split('.')[1]
+      const decodedPayload = Buffer.from(base64Payload, 'base64').toString('utf-8')
+      const decoded = JSON.parse(decodedPayload)
+      
+      if (!decoded.id || !decoded.collection) {
+        return null
+      }
+      
+      return {
+        id: decoded.id,
+        collection: decoded.collection
+      }
     } catch (decodeError) {
       return null
     }
@@ -250,6 +282,174 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { error: "Failed to create order" },
       { status: 500, headers },
+    )
+  }
+}
+
+// PUT - Update order status
+export async function PUT(request: NextRequest) {
+  const headers = corsHeaders(request)
+  try {
+    const requester = await getRequesterFromToken(request)
+    if (!requester) {
+      return NextResponse.json(
+        { error: "Unauthorized - Invalid or missing token" },
+        { status: 401, headers }
+      )
+    }
+
+    const payload = await getPayloadClient()
+    const body = await request.json()
+
+    if (!body.id) {
+      return NextResponse.json(
+        { error: "Order ID is required" },
+        { status: 400, headers }
+      )
+    }
+
+    if (!body.orderStatus) {
+      return NextResponse.json(
+        { error: "orderStatus is required" },
+        { status: 400, headers }
+      )
+    }
+
+    const ORDER_STATUS_VALUES = ["pending", "paid", "processing", "shipped", "delivered", "cancelled"]
+    if (!ORDER_STATUS_VALUES.includes(body.orderStatus)) {
+      return NextResponse.json(
+        { error: `Invalid orderStatus. Must be one of: ${ORDER_STATUS_VALUES.join(", ")}` },
+        { status: 400, headers }
+      )
+    }
+
+    const existingOrder = await payload.findByID({
+      collection: "orders",
+      id: body.id,
+      depth: 2,
+      overrideAccess: true,
+    })
+
+    if (!existingOrder) {
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404, headers }
+      )
+    }
+
+    const isAdmin = requester.collection === "users"
+    const isCustomer = requester.collection === "customers"
+    const isVendor = requester.collection === "vendors"
+
+    if (isAdmin) {
+      const updatedOrder = await payload.update({
+        collection: "orders",
+        id: body.id,
+        data: {
+          orderStatus: body.orderStatus,
+          ...(body.paymentStatus && { paymentStatus: body.paymentStatus }),
+        },
+        overrideAccess: true,
+      })
+
+      return NextResponse.json(
+        { success: true, order: updatedOrder, message: "Order status updated successfully" },
+        { headers }
+      )
+    }
+
+    if (isCustomer) {
+      const orderCustomerId = typeof existingOrder.customer === 'object' 
+        ? existingOrder.customer.id 
+        : existingOrder.customer
+
+      if (orderCustomerId !== requester.id) {
+        return NextResponse.json(
+          { error: "Forbidden - You can only update your own orders" },
+          { status: 403, headers }
+        )
+      }
+
+      if (body.orderStatus !== "cancelled") {
+        return NextResponse.json(
+          { error: "Customers can only cancel orders" },
+          { status: 403, headers }
+        )
+      }
+
+      const updatedOrder = await payload.update({
+        collection: "orders",
+        id: body.id,
+        data: { orderStatus: "cancelled" },
+        overrideAccess: true,
+      })
+
+      return NextResponse.json(
+        { success: true, order: updatedOrder, message: "Order cancelled successfully" },
+        { headers }
+      )
+    }
+
+    if (isVendor) {
+      const vendorProducts = await payload.find({
+        collection: "products",
+        where: {
+          vendor: {
+            equals: requester.id,
+          },
+        },
+        limit: 1000,
+        overrideAccess: true,
+      })
+
+      const vendorProductIds = vendorProducts.docs.map((p: any) => p.id)
+
+      const orderContainsVendorProducts = existingOrder.items?.some((item: any) => {
+        const productId = typeof item.product === 'object' ? item.product.id : item.product
+        return vendorProductIds.includes(productId)
+      })
+
+      if (!orderContainsVendorProducts) {
+        return NextResponse.json(
+          { error: "Forbidden - This order does not contain your products" },
+          { status: 403, headers }
+        )
+      }
+
+      const allowedStatuses = ["processing", "shipped", "delivered"]
+      if (!allowedStatuses.includes(body.orderStatus)) {
+        return NextResponse.json(
+          { error: `Vendors can only update status to: ${allowedStatuses.join(", ")}` },
+          { status: 403, headers }
+        )
+      }
+
+      const updatedOrder = await payload.update({
+        collection: "orders",
+        id: body.id,
+        data: { orderStatus: body.orderStatus },
+        overrideAccess: true,
+      })
+
+      return NextResponse.json(
+        { success: true, order: updatedOrder, message: "Order status updated successfully" },
+        { headers }
+      )
+    }
+
+    return NextResponse.json(
+      { error: "Forbidden - Insufficient permissions" },
+      { status: 403, headers }
+    )
+
+  } catch (error) {
+    console.error("Error updating order status:", error)
+    return NextResponse.json(
+      { 
+        error: "Failed to update order status",
+        details: error instanceof Error ? error.message : "Unknown error"
+      },
+      { status: 500, headers }
     )
   }
 }
