@@ -27,6 +27,7 @@ const getCustomerIdFromToken = async (request: NextRequest): Promise<string | nu
   }
 }
 
+
 // OPTIONS handler
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
@@ -65,22 +66,22 @@ export async function POST(request: NextRequest) {
       )
     }
     
+    // Get customer data for fallback name
+    const customer = await payload.findByID({
+      collection: COLLECTION_SLUGS.CUSTOMERS,
+      id: customerId,
+      overrideAccess: true,
+    })
+    
     // Get shipping address from request body or customer's default address
     let shippingAddress = body.shippingAddress
     
     if (!shippingAddress) {
       // Try to get default address from customer
-      const customer = await payload.findByID({
-        collection: COLLECTION_SLUGS.CUSTOMERS,
-        id: customerId,
-        overrideAccess: true,
-      })
-      
       const defaultAddress = customer?.addresses?.find((addr: any) => addr.isDefault)
       if (defaultAddress) {
         shippingAddress = {
-          firstName: defaultAddress.label || customer.Name?.split(' ')[0] || '',
-          lastName: customer.Name?.split(' ').slice(1).join(' ') || '',
+          name: customer?.Name || 'Customer',
           street: defaultAddress.street,
           city: defaultAddress.city,
           state: defaultAddress.state || '',
@@ -90,7 +91,21 @@ export async function POST(request: NextRequest) {
       }
     }
     
-    if (!shippingAddress || !shippingAddress.street || !shippingAddress.city || !shippingAddress.country) {
+    // Normalize shipping address: ensure we have a 'name' field
+    if (shippingAddress) {
+      // If we have firstName/lastName but no name, combine them
+      if ((shippingAddress.firstName || shippingAddress.lastName) && !shippingAddress.name) {
+        const firstName = shippingAddress.firstName?.trim() || ''
+        const lastName = shippingAddress.lastName?.trim() || ''
+        shippingAddress.name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer'
+      }
+      // If we have neither 'name' nor 'firstName'/'lastName', use customer's name
+      else if (!shippingAddress.name) {
+        shippingAddress.name = customer?.Name || 'Customer'
+      }
+    }
+    
+    if (!shippingAddress || !shippingAddress?.street || !shippingAddress?.city || !shippingAddress?.country) {
       return NextResponse.json(
         { error: "Shipping address is required" },
         { status: 400, headers }
@@ -227,6 +242,35 @@ export async function POST(request: NextRequest) {
     const shippingCost = body.shippingCost || 0
     const total = subtotal + tax + shippingCost
     
+    // Normalize billing address if provided
+    let billingAddress = null
+    if (body.billingAddress) {
+      billingAddress = { ...body.billingAddress }
+      // If we have firstName/lastName but no name, combine them
+      if ((billingAddress.firstName || billingAddress.lastName) && !billingAddress.name) {
+        const firstName = billingAddress.firstName?.trim() || ''
+        const lastName = billingAddress.lastName?.trim() || ''
+        billingAddress.name = [firstName, lastName].filter(Boolean).join(' ') || 'Customer'
+      }
+      // Remove firstName/lastName to avoid validation issues
+      delete billingAddress.firstName
+      delete billingAddress.lastName
+      // Ensure name exists
+      if (!billingAddress.name) {
+        billingAddress.name = 'Customer'
+      }
+    }
+    
+    // Ensure shippingAddress doesn't have firstName/lastName
+    const normalizedShippingAddress = {
+      name: shippingAddress?.name?.trim() || 'Customer',
+      street: shippingAddress?.street?.trim() || shippingAddress?.street || '',
+      city: shippingAddress?.city?.trim() || shippingAddress?.city || '',
+      state: shippingAddress?.state?.trim() || '',
+      country: shippingAddress?.country || 'Pakistan',
+      phone: shippingAddress?.phone?.trim() || shippingAddress?.phone || '',
+    }
+    
     // Generate order number
     const orderNumber = generateOrderNumber()
     
@@ -243,16 +287,8 @@ export async function POST(request: NextRequest) {
         paymentMethod: body.paymentMethod || 'cod',
         paymentId: body.paymentId || null,
         items: orderItems,
-        shippingAddress: {
-          firstName: shippingAddress.firstName?.trim() || 'Customer', // ← NEW
-          lastName: shippingAddress.lastName?.trim() || '',           // ← NEW
-          street: shippingAddress.street?.trim() || shippingAddress.street,  // ← NEW
-          city: shippingAddress.city?.trim() || shippingAddress.city,        // ← NEW
-          state: shippingAddress.state?.trim() || '',
-          country: shippingAddress.country || 'Pakistan',             // ← NEW
-          phone: shippingAddress.phone?.trim() || shippingAddress.phone || '', // ← NEW
-        },
-        billingAddress: body.billingAddress || null,
+        shippingAddress: normalizedShippingAddress,
+        billingAddress,
         subtotal: Number(subtotal.toFixed(2)),
         tax: Number(tax.toFixed(2)),
         shippingCost: Number(shippingCost.toFixed(2)),
