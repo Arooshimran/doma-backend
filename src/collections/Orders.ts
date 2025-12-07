@@ -285,7 +285,7 @@ const Orders: CollectionConfig = {
             ...rawItem,
             product: productId,
             productTitle: rawItem.productTitle ?? product.title,
-            vendor: rawItem.vendor ?? product.vendor,
+            vendor: rawItem.vendor ?? null,
             quantity,
             price: unitPrice,
             total: lineTotal,
