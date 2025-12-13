@@ -1,6 +1,6 @@
 import type { NextRequest } from "next/server"
 
-const FALLBACK_ORIGINS = "http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com"
+const FALLBACK_ORIGINS = "http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com,https://doma-gray.vercel.app"
 
 const normalize = (origin?: string | null) => origin?.replace(/\/$/, "")
 

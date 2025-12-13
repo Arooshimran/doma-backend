@@ -73,7 +73,7 @@ export default buildConfig({
 
   cors: {
     origin: (process.env.ALLOWED_ORIGINS ||
-      'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com')
+      'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com,https://doma-gray.vercel.app')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),
@@ -83,7 +83,7 @@ export default buildConfig({
   },
   
   csrf: (process.env.ALLOWED_ORIGINS ||
-    'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com')
+    'http://localhost:3000,http://localhost:3001,https://doma-backend.onrender.com,https://doma-gray.vercel.app')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
