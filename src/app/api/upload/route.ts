@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPayloadClient } from '@/lib/payload-client'
 
-export const config = { api: { bodyParser: false } }
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
 
 export async function POST(request: NextRequest) {
   const formData = await request.formData()
