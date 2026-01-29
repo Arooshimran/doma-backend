@@ -17,10 +17,10 @@ export async function OPTIONS(request: NextRequest) {
 // POST - Customer Registration
 export async function POST(request: NextRequest) {
   try {
-    console.log("Customer Register - Request received")
+    console.log("📝 Customer Register - Request received")
     const body = await request.json()
     const { email, password, Name, phone } = body
-    console.log("Customer Register - Email:", email)
+    console.log("📧 Customer Register - Email:", email)
 
     if (!email || !password || !Name) {
       return NextResponse.json(
@@ -54,7 +54,6 @@ export async function POST(request: NextRequest) {
     }
 
     const payload = await getPayloadClient()
-    console.log("🔌 Customer Register - Payload client ready")
     
     const existingCustomers = await payload.find({
       collection: "customers",
@@ -64,7 +63,6 @@ export async function POST(request: NextRequest) {
         },
       },
     })
-    console.log("🔍 Customer Register - Checked for existing email")
 
     if (existingCustomers.docs.length > 0) {
       return NextResponse.json(
@@ -76,7 +74,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log("📦 Customer Register - Creating new customer with data:", { email, Name, phone })
     const newCustomer = await payload.create({
       collection: "customers",
       data: {
@@ -140,12 +137,7 @@ export async function POST(request: NextRequest) {
     )
     
   } catch (error) {
-    console.error("❌ Customer registration error:", error)
-    
-    if (error instanceof Error) {
-      console.error("Error message:", error.message)
-      console.error("Error stack:", error.stack?.split('\n').slice(0, 3))
-    }
+    console.error("Customer registration error:", error)
     
     return NextResponse.json(
       { 
