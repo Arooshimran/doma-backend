@@ -41,6 +41,11 @@ const Customers: CollectionConfig = {
             data: { email, password },
             req,
           })
+          if (!result.user) {
+            return res.status(401).json({
+              message: "Login failed",
+            })
+          }
 
           return res.status(200).json({
             success: true,

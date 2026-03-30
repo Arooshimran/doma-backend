@@ -40,6 +40,12 @@ const Vendors: CollectionConfig = {
             req,
           })
 
+          if (!result.user) {
+            return res.status(401).json({
+              message: "Login failed",
+            })
+          }
+
           return res.status(200).json({
             success: true,
             token: result.token,
@@ -114,6 +120,12 @@ const Vendors: CollectionConfig = {
       },
     },
     {
+      name: "email",
+      type: "email",
+      access: {
+        read: ({ req }) => req.user?.collection === "users"},
+    },
+    {
       name: "status",
       type: "select",
       options: [
@@ -161,6 +173,8 @@ const Vendors: CollectionConfig = {
         { name: "city", type: "text" },
         { name: "country", type: "text" },
       ],
+      access: {
+        read: ({ req }) => req.user?.collection === "users"},
     },
     {
       name: "businessType",
@@ -197,13 +211,7 @@ const Vendors: CollectionConfig = {
 
   access: {
     create: () => true,
-    read: ({ req }) => {
-      if (isAdmin({ req })) return true
-      if (req.user?.collection === "vendors") {
-        return ownRecord({ req })
-      }
-      return false
-    },
+    read: () => true,
     update: ({ req }) => {
       if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
