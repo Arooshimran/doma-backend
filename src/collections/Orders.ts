@@ -8,7 +8,7 @@ const ORDER_STATUS_OPTIONS = [
   { label: "Processing", value: "processing" },
   { label: "Shipped", value: "shipped" },
   { label: "Delivered", value: "delivered" },
-  { label: "Cancelled", value: "cancelled" },
+  { label: "Canceled", value: "canceled" },
 ] as Array<{ label: string; value: string }>
 
 const ORDER_STATUS_VALUES = ORDER_STATUS_OPTIONS.map((status) => status.value)
@@ -199,7 +199,7 @@ const Orders: CollectionConfig = {
         const alreadyAdjusted = originalDoc?.inventoryAdjusted ?? false
 
         // 🔥 1. RESTOCK LOGIC: If cancelling an order that already took stock
-        if (nextStatus === 'cancelled' && alreadyAdjusted) {
+        if (nextStatus === 'canceled' && alreadyAdjusted) {
           const items = originalDoc?.items ?? []
           for (const item of items) {
             const productId = resolveRelationId(item.product)
