@@ -69,8 +69,15 @@ const Customers: CollectionConfig = {
     },
   ],
 
-  fields: [
+  access: {
+    create: () => true,
+    // 🔥 Globally readable so "Name" can be retrieved for product reviews
+    read: () => true, 
+    update: isAuthenticated,
+    delete: () => false,
+  },
 
+  fields: [
     {
       name: "role",
       type: "select",
@@ -83,14 +90,52 @@ const Customers: CollectionConfig = {
 
     { name: "googleId", type: "text", unique: true },
 
-    { name: "email", type: "email", required: true, unique: true },
+    { 
+      name: "email", 
+      type: "email", 
+      required: true, 
+      unique: true,
+      access: {
+        // 🔥 FIX: Return a boolean by comparing the doc ID with the user ID
+        read: ({ req: { user }, doc }) => {
+          if (user?.role === 'admin') return true;
+          return user?.id === doc?.id;
+        },
+      },
+    },
 
-    { name: "Name", type: "text" },
-    { name: "phone", type: "text" },
+    { name: "Name", type: "text" }, // Publicly readable for review display
+
+    { 
+      name: "phone", 
+      type: "text",
+      access: {
+        read: ({ req: { user }, doc }) => {
+          if (user?.role === 'admin') return true;
+          return user?.id === doc?.id;
+        },
+      },
+    },
+
+    {
+      name: "avatar",
+      type: "upload",
+      relationTo: "media", // This must match your Media collection slug
+      access: {
+        // Publicly readable so it shows up next to the Name in reviews
+        read: () => true,
+      },
+    },
 
     {
       name: "addresses",
       type: "array",
+      access: {
+        read: ({ req: { user }, doc }) => {
+          if (user?.role === 'admin') return true;
+          return user?.id === doc?.id;
+        },
+      },
       fields: [
         { name: "label", type: "text", required: true },
         { name: "street", type: "text", required: true },
@@ -109,13 +154,6 @@ const Customers: CollectionConfig = {
       defaultValue: "active",
     },
   ],
-
-  access: {
-    create: () => true,
-    read: isAuthenticated,
-    update: isAuthenticated,
-    delete: () => false,
-  },
 }
 
-export default Customers
+export default Customers;

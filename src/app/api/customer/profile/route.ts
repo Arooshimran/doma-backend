@@ -33,7 +33,6 @@ export async function OPTIONS(request: NextRequest) {
 export async function GET(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
       return NextResponse.json(
@@ -47,6 +46,7 @@ export async function GET(request: NextRequest) {
     const customer = await payload.findByID({
       collection: "customers",
       id: customerId,
+      depth: 1, // 🔥 Added depth to get the full Avatar/Media object
       overrideAccess: true,
     })
     
@@ -57,11 +57,11 @@ export async function GET(request: NextRequest) {
       )
     }
     
-    
     const customerProfile = {
       id: customer.id,
       email: customer.email,
       Name: customer.Name || '',
+      avatar: customer.avatar || null, // 🔥 Now included in response
       phone: customer.phone || '',
       role: customer.role || 'customer',
       status: customer.status || 'active',
@@ -86,10 +86,10 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// PUT - Update customer profile
 export async function PUT(request: NextRequest) {
   const headers = corsHeaders(request)
   try {
-    
     const customerId = await getCustomerIdFromToken(request)
     if (!customerId) {
       return NextResponse.json(
@@ -102,32 +102,29 @@ export async function PUT(request: NextRequest) {
     try {
       body = await request.json()
     } catch (jsonError) {
-      console.error("Error parsing JSON body:", jsonError)
       return NextResponse.json(
         { error: "Invalid JSON body" },
         { status: 400, headers }
       )
     }    
+
     const payload = await getPayloadClient()
-    
     const updateData: any = {}
     
-    if (body.Name !== undefined) {
-      updateData.Name = body.Name.trim()
-    }
+    if (body.Name !== undefined) updateData.Name = body.Name.trim()
+    if (body.phone !== undefined) updateData.phone = body.phone || ''
+    if (body.addresses !== undefined) updateData.addresses = body.addresses
     
-    if (body.phone !== undefined) {
-      updateData.phone = body.phone || ''
-    }
-    
-    if (body.addresses !== undefined) {
-      updateData.addresses = body.addresses
+    // 🔥 Allow updating the avatar (expects a Media ID string)
+    if (body.avatar !== undefined) {
+      updateData.avatar = body.avatar 
     }
         
     const updatedCustomer = await payload.update({
       collection: "customers",
       id: customerId,
       data: updateData,
+      depth: 1, // 🔥 Depth ensures we return the new image URL immediately
       overrideAccess: true,
     })
         
@@ -135,6 +132,7 @@ export async function PUT(request: NextRequest) {
       id: updatedCustomer.id,
       email: updatedCustomer.email,
       Name: updatedCustomer.Name || '',
+      avatar: updatedCustomer.avatar || null, // 🔥 Included in updated response
       phone: updatedCustomer.phone || '',
       role: updatedCustomer.role || 'customer',
       status: updatedCustomer.status || 'active',
@@ -154,12 +152,9 @@ export async function PUT(request: NextRequest) {
     let statusCode = 500
     
     if (error instanceof Error) {
-      if (error.message.includes("duplicate") || error.message.includes("E11000")) {
+      if (error.message.includes("duplicate")) {
         errorMessage = "Email already exists"
         statusCode = 409
-      } else if (error.message.includes("validation")) {
-        errorMessage = `Validation error: ${error.message}`
-        statusCode = 400
       }
     }
     
@@ -172,4 +167,3 @@ export async function PUT(request: NextRequest) {
     )
   }
 }
-
