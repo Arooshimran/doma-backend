@@ -1,15 +1,6 @@
-import type { CollectionConfig, PayloadRequest } from "payload"
+import type { CollectionConfig, PayloadRequest, Access } from "payload"
 import { isAdmin } from "@/lib/access-helpers"
 import { COLLECTION_SLUGS } from "./shared-types"
-
-type RequestUser = {
-  id?: string
-  collection?: string
-}
-
-const getRequestUser = (req?: PayloadRequest | null): RequestUser | undefined => {
-  return req?.user as RequestUser | undefined
-}
 
 const resolveRelationId = (value: unknown): string | null => {
   if (!value) return null
@@ -22,8 +13,8 @@ const resolveRelationId = (value: unknown): string | null => {
   return null
 }
 
-const customerAccessFilter = (req?: PayloadRequest | null) => {
-  const user = getRequestUser(req)
+const customerAccessFilter = (req: PayloadRequest) => {
+  const user = req?.user
   if (user?.collection === COLLECTION_SLUGS.CUSTOMERS && user?.id) {
     return { customer: { equals: String(user.id) } }
   }
@@ -37,11 +28,8 @@ const Reviews: CollectionConfig = {
     defaultColumns: ["product", "customer", "rating", "verifiedPurchase", "createdAt"],
   },
   access: {
-    read: () => true, 
-    create: ({ req }) => {
-      const user = getRequestUser(req)
-      return user?.collection === COLLECTION_SLUGS.CUSTOMERS
-    },
+    read: () => true, // Everyone can see reviews
+    create: ({ req }) => req?.user?.collection === COLLECTION_SLUGS.CUSTOMERS,
     update: ({ req }) => {
       if (isAdmin({ req })) return true
       return customerAccessFilter(req)
@@ -57,29 +45,13 @@ const Reviews: CollectionConfig = {
       type: "relationship",
       relationTo: COLLECTION_SLUGS.PRODUCTS,
       required: true,
-      admin: {
-        description: "The product being reviewed",
-      },
     },
     {
       name: "customer",
       type: "relationship",
       relationTo: COLLECTION_SLUGS.CUSTOMERS,
       required: true,
-      admin: {
-        description: "Auto-filled for customers, admins can select any customer",
-      },
-      hooks: {
-        beforeChange: [
-          ({ value, req, operation }) => {
-            const user = getRequestUser(req)
-            if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && user?.id) {
-              return String(user.id)
-            }
-            return value
-          },
-        ],
-      },
+      admin: { readOnly: true },
     },
     {
       name: "rating",
@@ -87,193 +59,141 @@ const Reviews: CollectionConfig = {
       required: true,
       min: 1,
       max: 5,
-      admin: {
-        description: "Rating from 1 to 5 stars",
-      },
     },
     {
       name: "title",
       type: "text",
-      admin: {
-        description: "Review title/headline",
-      },
     },
     {
       name: "description",
       type: "textarea",
       required: true,
-      admin: {
-        description: "Detailed review text",
-      },
     },
     {
       name: "verifiedPurchase",
       type: "checkbox",
       defaultValue: false,
-      admin: {
-        readOnly: true,
-        description: "Automatically set to true if customer has purchased this product",
-      },
+      admin: { readOnly: true },
     },
     {
       name: "helpfulCount",
       type: "number",
       defaultValue: 0,
-      admin: {
-        readOnly: true,
-        description: "Number of users who found this review helpful",
-      },
-    },
-    {
-      name: "reportedCount",
-      type: "number",
-      defaultValue: 0,
-      admin: {
-        description: "Number of times this review has been reported",
-      },
+      admin: { readOnly: true },
     },
   ],
   hooks: {
     beforeValidate: [
       async ({ data, req, operation }) => {
         if (!data || !req?.payload) return data
-
         const payload = req.payload
-        const user = getRequestUser(req)
+        const user = req.user
 
-        if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && user?.id && !data.customer) {
-          data.customer = String(user.id)
+        // 1. Auto-assign Customer ID on Create
+        if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
+          data.customer = user.id
         }
 
         const productId = resolveRelationId(data.product)
-        const customerId = resolveRelationId(data.customer ?? user?.id)
+        const customerId = resolveRelationId(data.customer)
 
-        if (productId && customerId) {
-          try {
-            const orders = await payload.find({
-              collection: COLLECTION_SLUGS.ORDERS,
-              where: {
-                and: [
-                  { customer: { equals: customerId } },
-                  { orderStatus: { in: ["paid", "processing", "shipped", "delivered"] } },
-                ],
-              },
-              limit: 100,
-              depth: 0,
-              overrideAccess: true,
-            })
+        if (!productId || !customerId) return data
 
-            let hasPurchased = false
-            for (const order of orders.docs) {
-              if (Array.isArray(order.items)) {
-                for (const item of order.items) {
-                  const itemProductId = resolveRelationId(item.product)
-                  if (itemProductId === productId) {
-                    hasPurchased = true
-                    break
-                  }
-                }
-              }
-              if (hasPurchased) break
-            }
-
-            if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && !hasPurchased) {
-              throw new Error("You can only review products you have purchased. Please purchase this product first.")
-            }
-
-            data.verifiedPurchase = hasPurchased
-          } catch (error) {
-            if (error instanceof Error && error.message.includes("You can only review products")) {
-              throw error
-            }
-            console.error("Error verifying purchase:", error)
-            if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
-              throw new Error("Unable to verify purchase. You can only review products you have purchased.")
-            }
-            data.verifiedPurchase = false
+        // 🔥 2. PREVENT DUPLICATE REVIEWS
+        if (operation === "create") {
+          const existingReview = await payload.find({
+            collection: COLLECTION_SLUGS.REVIEWS,
+            where: {
+              and: [
+                { product: { equals: productId } },
+                { customer: { equals: customerId } },
+              ],
+            },
+            limit: 1,
+          })
+          if (existingReview.totalDocs > 0) {
+            throw new Error("You have already reviewed this product.")
           }
-        } else if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
-          throw new Error("Product and customer information is required to create a review.")
+        }
+
+        // 3. VERIFIED PURCHASE CHECK
+        try {
+          const orders = await payload.find({
+            collection: COLLECTION_SLUGS.ORDERS,
+            where: {
+              and: [
+                { customer: { equals: customerId } },
+                { orderStatus: { in: ["paid", "processing", "shipped", "delivered"] } },
+              ],
+            },
+            depth: 0,
+            overrideAccess: true,
+          })
+
+          let hasPurchased = false
+          for (const order of orders.docs) {
+            if (Array.isArray(order.items)) {
+              hasPurchased = order.items.some(item => resolveRelationId(item.product) === productId)
+            }
+            if (hasPurchased) break
+          }
+
+          // Force check for customers on creation
+          if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && !hasPurchased) {
+            throw new Error("You can only review products you have purchased and paid for.")
+          }
+
+          data.verifiedPurchase = hasPurchased
+        } catch (error: any) {
+          if (error.message.includes("You can only review")) throw error
+          data.verifiedPurchase = false
         }
 
         return data
       },
     ],
     afterChange: [
-      async ({ doc, req, operation }) => {
-        if (!doc || !req?.payload) return
-
-        const payload = req.payload
+      async ({ doc, req }) => {
         const productId = resolveRelationId(doc.product)
-
-        if (!productId) return
-
-        await updateProductRating(payload, productId)
+        if (productId) await updateProductRating(req.payload, productId)
       },
     ],
     afterDelete: [
       async ({ doc, req }) => {
-        if (!doc?.product || !req?.payload) return
-
-        const payload = req.payload
         const productId = resolveRelationId(doc.product)
-        if (productId) {
-          await updateProductRating(payload, productId)
-        }
+        if (productId) await updateProductRating(req.payload, productId)
       },
     ],
   },
 }
 
+// --- RATING SYNC UTILITY ---
 async function updateProductRating(payload: any, productId: string) {
   try {
     const reviews = await payload.find({
       collection: COLLECTION_SLUGS.REVIEWS,
-      where: {
-        product: { equals: productId },
-      },
+      where: { product: { equals: productId } },
       limit: 1000,
       depth: 0,
       overrideAccess: true,
     })
 
-    if (reviews.docs.length === 0) {
-      await payload.update({
-        collection: COLLECTION_SLUGS.PRODUCTS,
-        id: productId,
-        data: {
-          rating: {
-            average: 0,
-            count: 0,
-          },
-        },
-        overrideAccess: true,
-        depth: 0,
-      })
-      return
-    }
-
-    // Calculate average rating from all reviews
-    const totalRating = reviews.docs.reduce((sum: number, review: any) => sum + (review.rating || 0), 0)
-    const averageRating = Number((totalRating / reviews.docs.length).toFixed(2))
-    const reviewCount = reviews.docs.length
+    const count = reviews.docs.length
+    const average = count > 0 
+      ? Number((reviews.docs.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / count).toFixed(2))
+      : 0
 
     await payload.update({
       collection: COLLECTION_SLUGS.PRODUCTS,
       id: productId,
       data: {
-        rating: {
-          average: averageRating,
-          count: reviewCount,
-        },
+        rating: { average, count },
       },
       overrideAccess: true,
-      depth: 0,
     })
-  } catch (error) {
-    console.error("Error updating product rating:", error)
+  } catch (e) {
+    console.error("Rating Sync Error:", e)
   }
 }
 
 export default Reviews
-

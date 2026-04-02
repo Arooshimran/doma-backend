@@ -472,10 +472,6 @@ export interface Order {
   orderStatus: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   paymentStatus?: ('pending' | 'paid' | 'failed') | null;
   paymentMethod?: string | null;
-  /**
-   * Gateway transaction ID or reference
-   */
-  paymentId?: string | null;
   shippingAddress: {
     firstName?: string | null;
     lastName?: string | null;
@@ -485,28 +481,11 @@ export interface Order {
     country: string;
     phone?: string | null;
   };
-  /**
-   * Optional - defaults to shipping address
-   */
-  billingAddress?: {
-    firstName?: string | null;
-    lastName?: string | null;
-    street?: string | null;
-    city?: string | null;
-    state?: string | null;
-    country?: string | null;
-  };
   items: {
     product: string | Product;
     productTitle?: string | null;
-    /**
-     * Auto-filled from selected product
-     */
     vendor?: (string | null) | Vendor;
     quantity: number;
-    /**
-     * Auto-filled from product pricing at time of purchase
-     */
     price?: number | null;
     total?: number | null;
     status?: ('pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled') | null;
@@ -516,16 +495,6 @@ export interface Order {
   tax?: number | null;
   shippingCost?: number | null;
   total?: number | null;
-  /**
-   * Kept for backwards compatibility
-   */
-  totals?: {
-    subtotal?: number | null;
-    tax?: number | null;
-    shipping?: number | null;
-    discount?: number | null;
-    total?: number | null;
-  };
   inventoryAdjusted?: boolean | null;
   updatedAt: string;
   createdAt: string;
@@ -536,38 +505,13 @@ export interface Order {
  */
 export interface Review {
   id: string;
-  /**
-   * The product being reviewed
-   */
   product: string | Product;
-  /**
-   * Auto-filled for customers, admins can select any customer
-   */
   customer: string | Customer;
-  /**
-   * Rating from 1 to 5 stars
-   */
   rating: number;
-  /**
-   * Review title/headline
-   */
   title?: string | null;
-  /**
-   * Detailed review text
-   */
   description: string;
-  /**
-   * Automatically set to true if customer has purchased this product
-   */
   verifiedPurchase?: boolean | null;
-  /**
-   * Number of users who found this review helpful
-   */
   helpfulCount?: number | null;
-  /**
-   * Number of times this review has been reported
-   */
-  reportedCount?: number | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -932,7 +876,6 @@ export interface OrdersSelect<T extends boolean = true> {
   orderStatus?: T;
   paymentStatus?: T;
   paymentMethod?: T;
-  paymentId?: T;
   shippingAddress?:
     | T
     | {
@@ -943,16 +886,6 @@ export interface OrdersSelect<T extends boolean = true> {
         state?: T;
         country?: T;
         phone?: T;
-      };
-  billingAddress?:
-    | T
-    | {
-        firstName?: T;
-        lastName?: T;
-        street?: T;
-        city?: T;
-        state?: T;
-        country?: T;
       };
   items?:
     | T
@@ -970,15 +903,6 @@ export interface OrdersSelect<T extends boolean = true> {
   tax?: T;
   shippingCost?: T;
   total?: T;
-  totals?:
-    | T
-    | {
-        subtotal?: T;
-        tax?: T;
-        shipping?: T;
-        discount?: T;
-        total?: T;
-      };
   inventoryAdjusted?: T;
   updatedAt?: T;
   createdAt?: T;
@@ -995,7 +919,6 @@ export interface ReviewsSelect<T extends boolean = true> {
   description?: T;
   verifiedPurchase?: T;
   helpfulCount?: T;
-  reportedCount?: T;
   updatedAt?: T;
   createdAt?: T;
 }
