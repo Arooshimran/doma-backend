@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { getPayloadClient } from "@/lib/payload-client" // Use your custom helper
+import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 import { OAuth2Client } from 'google-auth-library'
 import { randomBytes } from 'crypto'
@@ -31,11 +31,12 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Verify Google Token
+    // 1. Verify the ID Token with Google
     const ticket = await client.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     })
+    
     const googlePayload = ticket.getPayload()
     
     if (!googlePayload || !googlePayload.email) {
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { email, name, sub: googleId } = googlePayload
-    const payload = await getPayloadClient() // Matches your working route
+    const payload = await getPayloadClient()
 
     // 2. Find or Create Customer
     const customerSearch = await payload.find({
@@ -64,20 +65,19 @@ export async function POST(request: NextRequest) {
           email,
           Name: name || 'Google User',
           googleId,
-          password: randomBytes(32).toString('hex'),
+          // Generate a long random password since Payload requires one, 
+          // but the user will only ever use Google to log in.
+          password: randomBytes(32).toString('hex'), 
           status: 'active',
         },
       })
     }
 
-    // 3. Generate JWT via Payload Login
-    const loginResult = await payload.login({
-      collection: "customers",
-      data: { 
-        email: userDoc.email, 
-        password: 'SOCIAL_LOGIN_BYPASS' // Bypassed by overrideAccess
-      },
-      overrideAccess: true,
+    // 3. Generate JWT (Manual Encryption)
+    // This bypasses the password check but gives the app a valid session token.
+    const token = payload.encryptJWT({
+      collection: 'customers',
+      user: userDoc,
     })
 
     console.log("✅ Google Login - Success for:", email)
@@ -85,20 +85,23 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        token: loginResult.token,
+        message: "Login successful",
+        token: token, 
         user: {
           id: userDoc.id,
           email: userDoc.email,
-          Name: (userDoc as any).Name,
+          Name: (userDoc as any).Name, 
           status: userDoc.status,
           role: "customer",
-        },
+        }
       },
-      { headers: corsHeaders(request) }
+      {
+        headers: corsHeaders(request),
+      }
     )
 
   } catch (error) {
-    console.error("Google login error:", error)
+    console.error("❌ Google login error:", error)
     return NextResponse.json(
       { 
         error: "Google authentication failed",
