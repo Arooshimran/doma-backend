@@ -3,6 +3,7 @@ import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 import { OAuth2Client } from 'google-auth-library'
 import { randomBytes } from 'crypto'
+import { SignJWT } from 'jose'
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
@@ -36,9 +37,9 @@ export async function POST(request: NextRequest) {
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
     })
-    
+
     const googlePayload = ticket.getPayload()
-    
+
     if (!googlePayload || !googlePayload.email) {
       return NextResponse.json(
         { error: "Invalid Google Token" },
@@ -65,20 +66,24 @@ export async function POST(request: NextRequest) {
           email,
           Name: name || 'Google User',
           googleId,
-          // Generate a long random password since Payload requires one, 
-          // but the user will only ever use Google to log in.
-          password: randomBytes(32).toString('hex'), 
+          password: randomBytes(32).toString('hex'),
           status: 'active',
         },
       })
     }
 
-    // 3. Generate JWT (Manual Encryption)
-    // This bypasses the password check but gives the app a valid session token.
-    const token = payload.encryptJWT({
+    // 3. Generate JWT using jose (same library Payload uses internally)
+    const secret = new TextEncoder().encode(process.env.PAYLOAD_SECRET)
+
+    const token = await new SignJWT({
+      id: userDoc.id,
+      email: userDoc.email,
       collection: 'customers',
-      user: userDoc,
     })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('2h')
+      .sign(secret)
 
     console.log("✅ Google Login - Success for:", email)
 
@@ -86,11 +91,11 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         message: "Login successful",
-        token: token, 
+        token,
         user: {
           id: userDoc.id,
           email: userDoc.email,
-          Name: (userDoc as any).Name, 
+          Name: (userDoc as any).Name,
           status: userDoc.status,
           role: "customer",
         }
@@ -103,7 +108,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("❌ Google login error:", error)
     return NextResponse.json(
-      { 
+      {
         error: "Google authentication failed",
         details: error instanceof Error ? error.message : "Unknown error"
       },
