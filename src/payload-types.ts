@@ -209,6 +209,7 @@ export interface Customer {
   googleId?: string | null;
   Name?: string | null;
   phone?: string | null;
+  avatar?: (string | null) | Media;
   addresses?:
     | {
         label: string;
@@ -240,6 +241,27 @@ export interface Customer {
     | null;
   password?: string | null;
   collection: 'customers';
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "media".
+ */
+export interface Media {
+  id: string;
+  alt: string;
+  cloudinaryPublicId?: string | null;
+  cloudinaryUrl?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+  focalX?: number | null;
+  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -341,27 +363,6 @@ export interface Product {
     | null;
   updatedAt: string;
   createdAt: string;
-}
-/**
- * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "media".
- */
-export interface Media {
-  id: string;
-  alt: string;
-  cloudinaryPublicId?: string | null;
-  cloudinaryUrl?: string | null;
-  updatedAt: string;
-  createdAt: string;
-  url?: string | null;
-  thumbnailURL?: string | null;
-  filename?: string | null;
-  mimeType?: string | null;
-  filesize?: number | null;
-  width?: number | null;
-  height?: number | null;
-  focalX?: number | null;
-  focalY?: number | null;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
@@ -469,7 +470,7 @@ export interface Order {
   id: string;
   orderNumber: string;
   customer: string | Customer;
-  orderStatus: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  orderStatus: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'canceled';
   paymentStatus?: ('pending' | 'paid' | 'failed') | null;
   paymentMethod?: string | null;
   shippingAddress: {
@@ -488,7 +489,7 @@ export interface Order {
     quantity: number;
     price?: number | null;
     total?: number | null;
-    status?: ('pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'cancelled') | null;
+    status?: ('pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'canceled') | null;
     id?: string | null;
   }[];
   subtotal?: number | null;
@@ -673,6 +674,7 @@ export interface CustomersSelect<T extends boolean = true> {
   googleId?: T;
   Name?: T;
   phone?: T;
+  avatar?: T;
   addresses?:
     | T
     | {

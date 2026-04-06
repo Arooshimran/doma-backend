@@ -260,7 +260,152 @@ const Orders: CollectionConfig = {
         return data
       },
     ],
+    afterChange: [
+      async ({ doc, req, operation, previousDoc }) => {
+        try {
+          const payload = req.payload;
+          
+          // 1. Ensure we have a customer ID to work with
+          const customerId = doc.customer && typeof doc.customer === 'object' 
+            ? doc.customer.id 
+            : doc.customer;
+    
+          if (!customerId) {
+            console.warn("Order processed without a customer ID. Skipping email.");
+            return;
+          }
+    
+          // 2. Fetch the customer profile
+          const customer = await payload.findByID({
+            collection: COLLECTION_SLUGS.CUSTOMERS,
+            id: customerId,
+          });
+    
+          if (!customer?.email) return;
+    
+          // --- CASE A: New Order Created ---
+          if (operation === "create") {
+            await sendOrderConfirmationEmail(payload, doc, customer);
+          } 
+          
+          // --- CASE B: Status Updated (Pending -> Shipped, etc.) ---
+          else if (operation === "update" && doc.orderStatus !== previousDoc?.orderStatus) {
+            await sendOrderStatusUpdateEmail(payload, doc, customer);
+          }
+    
+        } catch (emailError: any) {
+          console.error("Order email hook error:", emailError.message);
+        }
+      },
+    ],
   },
+}
+
+async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: any) {
+  // Map the internal status values to user-friendly messages
+  const statusMessages: Record<string, string> = {
+    processing: "is now being processed and packed.",
+    shipped: "has been shipped! It's on its way to you.",
+    delivered: "has been delivered. Enjoy your DOMA products!",
+    canceled: "has been canceled as requested.",
+  };
+
+  const message = statusMessages[order.orderStatus] || `status has been updated to ${order.orderStatus}.`;
+
+  try {
+    await payload.sendEmail({
+      to: customer.email,
+      subject: `Update on Order #${order.orderNumber}: ${order.orderStatus.toUpperCase()}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee;">
+          <div style="background: #FF9800; color: white; padding: 20px; text-align: center;">
+            <h1>Order Update</h1>
+          </div>
+          <div style="padding: 30px; background: #ffffff;">
+            <h2>Good news, ${customer.Name || 'Customer'}!</h2>
+            <p>Your order <strong>#${order.orderNumber}</strong> ${message}</p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center;">
+              <p style="margin: 0; color: #666;">Current Status:</p>
+              <h3 style="margin: 5px 0; color: #1B5E20; text-transform: uppercase;">${order.orderStatus}</h3>
+            </div>
+
+            <p><strong>Order Details:</strong><br />
+            Total: Rs. ${order.total}<br />
+            Items: ${order.items.length} items</p>
+
+            <p style="text-align: center; margin-top: 30px;">
+              <a href="https://doma-app.com/track/${order.orderNumber}" style="background: #1B5E20; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                View Order Progress
+              </a>
+            </p>
+          </div>
+          <div style="background: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            Questions? Contact our support at support@doma.com
+          </div>
+        </div>
+      `,
+    });
+    console.log(`Status update email (${order.orderStatus}) sent to ${customer.email}`);
+  } catch (error: any) {
+    console.error("Failed to send status update email:", error.message);
+  }
+}
+
+// --- EMAIL NOTIFICATION FUNCTION ---
+async function sendOrderConfirmationEmail(payload: any, order: any, customer: any) {
+  try {
+    await payload.sendEmail({
+      to: customer.email,
+      subject: `Order Confirmed: #${order.orderNumber}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee;">
+          <div style="background: #1B5E20; color: white; padding: 20px; text-align: center;">
+            <h1>Order Confirmed!</h1>
+          </div>
+          <div style="padding: 30px; background: #ffffff;">
+            <h2>Thank you for your order, ${customer.Name || 'Customer'}!</h2>
+            <p>We've received your order <strong>#${order.orderNumber}</strong> and it is now being processed.</p>
+            
+            <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">Order Summary</h3>
+              <table style="width: 100%; border-collapse: collapse;">
+                ${order.items.map((item: any) => `
+                  <tr>
+                    <td style="padding: 10px 0;">${item.productTitle} (x${item.quantity})</td>
+                    <td style="text-align: right; padding: 10px 0;">Rs. ${item.total}</td>
+                  </tr>
+                `).join('')}
+                <tr style="border-top: 2px solid #ddd; font-weight: bold;">
+                  <td style="padding: 10px 0;">Total</td>
+                  <td style="text-align: right; padding: 10px 0;">Rs. ${order.total}</td>
+                </tr>
+              </table>
+            </div>
+
+            <p><strong>Shipping to:</strong><br />
+            ${order.shippingAddress.street}, ${order.shippingAddress.city}<br />
+            ${order.shippingAddress.country}</p>
+
+            <p>We'll send you another update once your package is on its way!</p>
+            
+            <p style="text-align: center; margin-top: 30px;">
+              <a href="https://doma-app.com/orders" style="background: #FF9800; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
+                Track My Order
+              </a>
+            </p>
+          </div>
+          <div style="background: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666;">
+            &copy; ${new Date().getFullYear()} DOMA - Your AI Design Partner
+          </div>
+        </div>
+      `,
+      text: `Order Confirmed: #${order.orderNumber}. Thank you for your purchase of Rs. ${order.total}.`
+    })
+    console.log(`Order confirmation sent to ${customer.email}`)
+  } catch (error: any) {
+    console.error("Failed to send order email:", error.message)
+  }
 }
 
 export default Orders
