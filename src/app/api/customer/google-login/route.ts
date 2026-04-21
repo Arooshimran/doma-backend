@@ -88,33 +88,14 @@ export async function POST(request: NextRequest) {
       })
 
       console.log("🛒 Cart & wishlist created for:", email)
-    } } else {
-      // ✅ Update password to deterministic one
+    } else {
+      // ✅ Existing Google user — update their password to the deterministic one
+      // This fixes existing users who had a random password
       await payload.update({
         collection: 'customers',
         id: userDoc.id,
         data: { password: googlePassword },
       })
-    
-      // ✅ Create cart if missing
-      const existingCart = await payload.find({
-        collection: 'carts',
-        where: { userId: { equals: userDoc.id } },
-      })
-      if (existingCart.docs.length === 0) {
-        await payload.create({ collection: 'carts', data: { userId: userDoc.id, items: [] } })
-        console.log("🛒 Cart created for existing user:", email)
-      }
-    
-      // ✅ Create wishlist if missing
-      const existingWishlist = await payload.find({
-        collection: 'wishlists',
-        where: { userId: { equals: userDoc.id } },
-      })
-      if (existingWishlist.docs.length === 0) {
-        await payload.create({ collection: 'wishlists', data: { userId: userDoc.id, items: [] } })
-        console.log("💛 Wishlist created for existing user:", email)
-      }
     }
 
     // 3. ✅ Use Payload's own login to get a fully valid token
