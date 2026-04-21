@@ -2,8 +2,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 import { OAuth2Client } from 'google-auth-library'
-import { randomBytes } from 'crypto'
-import { SignJWT } from 'jose'
+import { createHmac } from 'crypto'
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
 
@@ -18,6 +17,12 @@ export async function OPTIONS(request: NextRequest) {
     headers: corsHeaders(request),
   })
 }
+
+// Derives a deterministic password from googleId + PAYLOAD_SECRET
+const deriveGooglePassword = (googleId: string) =>
+  createHmac('sha256', process.env.PAYLOAD_SECRET!)
+    .update(googleId)
+    .digest('hex')
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,6 +62,7 @@ export async function POST(request: NextRequest) {
     })
 
     let userDoc = customerSearch.docs[0]
+    const googlePassword = deriveGooglePassword(googleId)
 
     if (!userDoc) {
       console.log("🆕 Creating new Google customer:", email)
@@ -66,24 +72,59 @@ export async function POST(request: NextRequest) {
           email,
           Name: name || 'Google User',
           googleId,
-          password: randomBytes(32).toString('hex'),
+          password: googlePassword, // ✅ deterministic, not random
           status: 'active',
         },
       })
+
+      // ✅ Create cart and wishlist for new Google user
+      await payload.create({
+        collection: 'carts',
+        data: { userId: userDoc.id, items: [] },
+      })
+      await payload.create({
+        collection: 'wishlists',
+        data: { userId: userDoc.id, items: [] },
+      })
+
+      console.log("🛒 Cart & wishlist created for:", email)
+    } } else {
+      // ✅ Update password to deterministic one
+      await payload.update({
+        collection: 'customers',
+        id: userDoc.id,
+        data: { password: googlePassword },
+      })
+    
+      // ✅ Create cart if missing
+      const existingCart = await payload.find({
+        collection: 'carts',
+        where: { userId: { equals: userDoc.id } },
+      })
+      if (existingCart.docs.length === 0) {
+        await payload.create({ collection: 'carts', data: { userId: userDoc.id, items: [] } })
+        console.log("🛒 Cart created for existing user:", email)
+      }
+    
+      // ✅ Create wishlist if missing
+      const existingWishlist = await payload.find({
+        collection: 'wishlists',
+        where: { userId: { equals: userDoc.id } },
+      })
+      if (existingWishlist.docs.length === 0) {
+        await payload.create({ collection: 'wishlists', data: { userId: userDoc.id, items: [] } })
+        console.log("💛 Wishlist created for existing user:", email)
+      }
     }
 
-    // 3. Generate JWT using jose (same library Payload uses internally)
-    const secret = new TextEncoder().encode(process.env.PAYLOAD_SECRET)
-
-    const token = await new SignJWT({
-      id: userDoc.id,
-      email: userDoc.email,
+    // 3. ✅ Use Payload's own login to get a fully valid token
+    const loginResult = await payload.login({
       collection: 'customers',
+      data: {
+        email,
+        password: googlePassword,
+      },
     })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setIssuedAt()
-      .setExpirationTime('2h')
-      .sign(secret)
 
     console.log("✅ Google Login - Success for:", email)
 
@@ -91,7 +132,7 @@ export async function POST(request: NextRequest) {
       {
         success: true,
         message: "Login successful",
-        token,
+        token: loginResult.token,
         user: {
           id: userDoc.id,
           email: userDoc.email,
@@ -100,9 +141,7 @@ export async function POST(request: NextRequest) {
           role: "customer",
         }
       },
-      {
-        headers: corsHeaders(request),
-      }
+      { headers: corsHeaders(request) }
     )
 
   } catch (error) {
