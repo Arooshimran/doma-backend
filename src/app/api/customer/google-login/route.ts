@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         data: { userId: userDoc.id, items: [] },
       })
       await payload.create({
-        collection: 'wishlists',
+        collection: 'wishlist',
         data: { userId: userDoc.id, items: [] },
       })
 
@@ -94,8 +94,12 @@ export async function POST(request: NextRequest) {
       await payload.update({
         collection: 'customers',
         id: userDoc.id,
-        data: { password: googlePassword },
+        data: { 
+          password: googlePassword,
+          googleId, // ✅ saves googleId if they didn't have one
+        },
       })
+      console.log("✅ Existing user updated:", email)
     }
 
     // 3. ✅ Use Payload's own login to get a fully valid token
