@@ -6,7 +6,6 @@ import { resolveRelationId } from "@/lib/cart-utils"
 import { Safepay } from "@sfpy/node-sdk"
 import type { SafepayEnvironment } from "@sfpy/node-sdk/dist/types/safepay"
 
-
 const ONLINE_PAYMENT_METHODS = new Set(["card", "wallet", "safepay", "online"])
 
 const toLower = (value: unknown) => String(value ?? "").trim().toLowerCase()
@@ -84,17 +83,19 @@ export const getSafepayClient = (): Safepay => {
   }
 
   if (!safepayClient) {
+    // We remove api_base and let the 'environment' property handle the routing
     safepayClient = new Safepay({
-      environment: config.environment as ConstructorParameters<typeof Safepay>[0]["environment"],
+      environment: config.environment as SafepayEnvironment, 
       apiKey: config.apiKey,
       v1Secret: config.v1Secret,
       webhookSecret: config.webhookSecret,
     })
+    
+    console.log(`[Safepay] Initialized in ${config.environment} mode.`);
   }
 
   return safepayClient
 }
-
 export const toMinorAmount = (amount: number): number => {
   const normalized = Number(amount)
   if (!Number.isFinite(normalized) || normalized <= 0) {
@@ -289,4 +290,3 @@ export const clearPurchasedItemsFromCart = async ({
     overrideAccess: true,
   })
 }
-
