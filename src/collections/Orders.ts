@@ -100,6 +100,11 @@ const Orders: CollectionConfig = {
       type: "text",
     },
     {
+      name: "safepayTracker",
+      type: "text",
+      admin: { readOnly: true },
+    },
+    {
       name: "shippingAddress",
       type: "group",
       required: true,
