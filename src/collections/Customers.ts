@@ -137,147 +137,132 @@ const Customers: CollectionConfig = {
     },
 
     // ✅ NEW: Forgot Password - Send OTP
-    {
-      path: "/forgot-password",
-      method: "post",
-      handler: (async (req: any, res: any) => {
-        try {
-          const { email } = req.body
+ // ✅ NEW: Forgot Password - Send OTP
+{
+  path: "/forgot-password",
+  method: "post",
+  handler: (async (req: any) => {
+    try {
+      const body = await req.json()
+      const { email } = body
 
-          if (!email) {
-            return res.status(400).json({ error: "Email is required" })
-          }
+      if (!email) {
+        return Response.json({ error: "Email is required" }, { status: 400 })
+      }
 
-          // Find customer
-          const customerSearch = await req.payload.find({
-            collection: 'customers',
-            where: { email: { equals: email } },
-          })
+      const customerSearch = await req.payload.find({
+        collection: 'customers',
+        where: { email: { equals: email } },
+        overrideAccess: true,
+      })
 
-          // Always return success to avoid revealing if email exists
-          if (customerSearch.docs.length === 0) {
-            return res.status(200).json({
-              success: true,
-              message: "If this email exists, an OTP has been sent."
-            })
-          }
+      if (customerSearch.docs.length === 0) {
+        return Response.json({ success: true, message: "If this email exists, an OTP has been sent." })
+      }
 
-          const customer = customerSearch.docs[0]
+      const customer = customerSearch.docs[0] as any
 
-          // Generate 5-digit OTP
-          const otp = Math.floor(10000 + Math.random() * 90000).toString()
-          const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString() // 10 mins
+      const otp = Math.floor(10000 + Math.random() * 90000).toString()
+      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-          // Save OTP to customer document
-          await req.payload.update({
-            collection: 'customers',
-            id: customer.id,
-            data: {
-              resetOtp: otp,
-              resetOtpExpiry: otpExpiry,
-            },
-            overrideAccess: true,
-          })
+      await req.payload.update({
+        collection: 'customers',
+        id: customer.id,
+        data: {
+          resetOtp: otp,
+          resetOtpExpiry: otpExpiry,
+        },
+        overrideAccess: true,
+      })
 
-          // Send OTP email via Resend
-          await resend.emails.send({
-            from: 'DOMA <onboarding@resend.dev>',
-            to: email,
-            subject: 'Your DOMA Password Reset Code',
-            html: `
-              <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-                <h2 style="color: #2d6a4f;">Reset Your Password</h2>
-                <p>Hi ${(customer as any).Name || 'there'},</p>
-                <p>Use the code below to reset your DOMA password. This code expires in <strong>10 minutes</strong>.</p>
-                <div style="background: #f4f4f4; border-radius: 10px; padding: 20px; text-align: center; margin: 25px 0;">
-                  <span style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #2d6a4f;">
-                    ${otp}
-                  </span>
-                </div>
-                <p style="color: #999; font-size: 13px;">If you didn't request this, ignore this email.</p>
-              </div>
-            `,
-          })
+      await resend.emails.send({
+        from: 'DOMA <onboarding@resend.dev>',
+        to: email,
+        subject: 'Your DOMA Password Reset Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+            <h2 style="color: #2d6a4f;">Reset Your Password</h2>
+            <p>Hi ${customer.Name || 'there'},</p>
+            <p>Use the code below to reset your DOMA password. This code expires in <strong>10 minutes</strong>.</p>
+            <div style="background: #f4f4f4; border-radius: 10px; padding: 20px; text-align: center; margin: 25px 0;">
+              <span style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #2d6a4f;">
+                ${otp}
+              </span>
+            </div>
+            <p style="color: #999; font-size: 13px;">If you didn't request this, ignore this email.</p>
+          </div>
+        `,
+      })
 
-          return res.status(200).json({
-            success: true,
-            message: "OTP sent to your email."
-          })
+      return Response.json({ success: true, message: "OTP sent to your email." })
 
-        } catch (err: any) {
-          console.error("Forgot Password Error:", err.message)
-          return res.status(500).json({ error: "Failed to send OTP" })
-        }
-      }) as any,
-    },
+    } catch (err: any) {
+      console.error("Forgot Password Error:", err.message)
+      return Response.json({ error: "Failed to send OTP" }, { status: 500 })
+    }
+  }) as any,
+},
 
-    // ✅ NEW: Verify OTP + Reset Password
-    {
-      path: "/verify-otp",
-      method: "post",
-      handler: (async (req: any, res: any) => {
-        try {
-          const { email, otp, newPassword } = req.body
+// ✅ NEW: Verify OTP + Reset Password
+{
+  path: "/verify-otp",
+  method: "post",
+  handler: (async (req: any) => {
+    try {
+      const body = await req.json()
+      const { email, otp, newPassword } = body
 
-          if (!email || !otp || !newPassword) {
-            return res.status(400).json({ error: "Email, OTP and new password are required" })
-          }
+      if (!email || !otp || !newPassword) {
+        return Response.json({ error: "Email, OTP and new password are required" }, { status: 400 })
+      }
 
-          if (newPassword.length < 6) {
-            return res.status(400).json({ error: "Password must be at least 6 characters" })
-          }
+      if (newPassword.length < 6) {
+        return Response.json({ error: "Password must be at least 6 characters" }, { status: 400 })
+      }
 
-          // Find customer
-          const customerSearch = await req.payload.find({
-            collection: 'customers',
-            where: { email: { equals: email } },
-            overrideAccess: true,
-          })
+      const customerSearch = await req.payload.find({
+        collection: 'customers',
+        where: { email: { equals: email } },
+        overrideAccess: true,
+      })
 
-          if (customerSearch.docs.length === 0) {
-            return res.status(404).json({ error: "Customer not found" })
-          }
+      if (customerSearch.docs.length === 0) {
+        return Response.json({ error: "Customer not found" }, { status: 404 })
+      }
 
-          const customer = customerSearch.docs[0] as any
+      const customer = customerSearch.docs[0] as any
 
-          // Check OTP exists
-          if (!customer.resetOtp || !customer.resetOtpExpiry) {
-            return res.status(400).json({ error: "No OTP requested. Please request a new one." })
-          }
+      if (!customer.resetOtp || !customer.resetOtpExpiry) {
+        return Response.json({ error: "No OTP requested. Please request a new one." }, { status: 400 })
+      }
 
-          // Check OTP expiry
-          if (new Date() > new Date(customer.resetOtpExpiry)) {
-            return res.status(400).json({ error: "OTP has expired. Please request a new one." })
-          }
+      if (new Date() > new Date(customer.resetOtpExpiry)) {
+        return Response.json({ error: "OTP has expired. Please request a new one." }, { status: 400 })
+      }
 
-          // Check OTP match
-          if (customer.resetOtp !== otp) {
-            return res.status(400).json({ error: "Incorrect OTP. Please try again." })
-          }
+      if (customer.resetOtp !== otp) {
+        return Response.json({ error: "Incorrect OTP. Please try again." }, { status: 400 })
+      }
 
-          // ✅ Reset password and clear OTP
-          await req.payload.update({
-            collection: 'customers',
-            id: customer.id,
-            data: {
-              password: newPassword,
-              resetOtp: null,
-              resetOtpExpiry: null,
-            },
-            overrideAccess: true,
-          })
+      await req.payload.update({
+        collection: 'customers',
+        id: customer.id,
+        data: {
+          password: newPassword,
+          resetOtp: null,
+          resetOtpExpiry: null,
+        },
+        overrideAccess: true,
+      })
 
-          return res.status(200).json({
-            success: true,
-            message: "Password reset successfully. Please log in."
-          })
+      return Response.json({ success: true, message: "Password reset successfully. Please log in." })
 
-        } catch (err: any) {
-          console.error("Verify OTP Error:", err.message)
-          return res.status(500).json({ error: "Failed to verify OTP" })
-        }
-      }) as any,
-    },
+    } catch (err: any) {
+      console.error("Verify OTP Error:", err.message)
+      return Response.json({ error: "Failed to verify OTP" }, { status: 500 })
+    }
+  }) as any,
+},
   ],
 
   access: {
