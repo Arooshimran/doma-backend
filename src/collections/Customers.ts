@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload"
 import { isAuthenticated } from "@/lib/access-helpers"
-import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
+import { buildCorsHeaders, buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 import { OAuth2Client } from 'google-auth-library'
 import crypto from 'crypto'
 import { Resend } from 'resend'
@@ -12,6 +12,16 @@ const corsHeaders = (request?: any) =>
   buildCorsHeadersFromRequest(request, {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
+
+// ✅ CORS-aware response helper using your existing buildCorsHeaders
+const corsResponse = (req: any, data: any, status: number = 200) => {
+  const origin = req?.headers?.get?.('origin') ?? req?.headers?.origin
+  const headers = buildCorsHeaders(origin, {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  })
+  return new Response(JSON.stringify(data), { status, headers })
+}
 
 const Customers: CollectionConfig = {
   slug: "customers",
@@ -136,133 +146,146 @@ const Customers: CollectionConfig = {
       }) as any,
     },
 
-    // ✅ NEW: Forgot Password - Send OTP
- // ✅ NEW: Forgot Password - Send OTP
-{
-  path: "/forgot-password",
-  method: "post",
-  handler: (async (req: any) => {
-    try {
-      const body = await req.json()
-      const { email } = body
+    // ✅ OPTIONS for forgot-password
+    {
+      path: "/forgot-password",
+      method: "options",
+      handler: (async (req: any) => corsResponse(req, { message: "OK" })) as any,
+    },
 
-      if (!email) {
-        return Response.json({ error: "Email is required" }, { status: 400 })
-      }
+    // ✅ OPTIONS for verify-otp
+    {
+      path: "/verify-otp",
+      method: "options",
+      handler: (async (req: any) => corsResponse(req, { message: "OK" })) as any,
+    },
 
-      const customerSearch = await req.payload.find({
-        collection: 'customers',
-        where: { email: { equals: email } },
-        overrideAccess: true,
-      })
+    // ✅ Forgot Password - Send OTP
+    {
+      path: "/forgot-password",
+      method: "post",
+      handler: (async (req: any) => {
+        try {
+          const body = await req.json()
+          const { email } = body
 
-      if (customerSearch.docs.length === 0) {
-        return Response.json({ success: true, message: "If this email exists, an OTP has been sent." })
-      }
+          if (!email) {
+            return corsResponse(req, { error: "Email is required" }, 400)
+          }
 
-      const customer = customerSearch.docs[0] as any
+          const customerSearch = await req.payload.find({
+            collection: 'customers',
+            where: { email: { equals: email } },
+            overrideAccess: true,
+          })
 
-      const otp = Math.floor(10000 + Math.random() * 90000).toString()
-      const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+          if (customerSearch.docs.length === 0) {
+            return corsResponse(req, { success: true, message: "If this email exists, an OTP has been sent." })
+          }
 
-      await req.payload.update({
-        collection: 'customers',
-        id: customer.id,
-        data: {
-          resetOtp: otp,
-          resetOtpExpiry: otpExpiry,
-        },
-        overrideAccess: true,
-      })
+          const customer = customerSearch.docs[0] as any
 
-      await resend.emails.send({
-        from: 'DOMA <onboarding@resend.dev>',
-        to: email,
-        subject: 'Your DOMA Password Reset Code',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-            <h2 style="color: #2d6a4f;">Reset Your Password</h2>
-            <p>Hi ${customer.Name || 'there'},</p>
-            <p>Use the code below to reset your DOMA password. This code expires in <strong>10 minutes</strong>.</p>
-            <div style="background: #f4f4f4; border-radius: 10px; padding: 20px; text-align: center; margin: 25px 0;">
-              <span style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #2d6a4f;">
-                ${otp}
-              </span>
-            </div>
-            <p style="color: #999; font-size: 13px;">If you didn't request this, ignore this email.</p>
-          </div>
-        `,
-      })
+          const otp = Math.floor(10000 + Math.random() * 90000).toString()
+          const otpExpiry = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
-      return Response.json({ success: true, message: "OTP sent to your email." })
+          await req.payload.update({
+            collection: 'customers',
+            id: customer.id,
+            data: {
+              resetOtp: otp,
+              resetOtpExpiry: otpExpiry,
+            },
+            overrideAccess: true,
+          })
 
-    } catch (err: any) {
-      console.error("Forgot Password Error:", err.message)
-      return Response.json({ error: "Failed to send OTP" }, { status: 500 })
-    }
-  }) as any,
-},
+          await resend.emails.send({
+            from: 'DOMA <onboarding@resend.dev>',
+            to: email,
+            subject: 'Your DOMA Password Reset Code',
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
+                <h2 style="color: #2d6a4f;">Reset Your Password</h2>
+                <p>Hi ${customer.Name || 'there'},</p>
+                <p>Use the code below to reset your DOMA password. This code expires in <strong>10 minutes</strong>.</p>
+                <div style="background: #f4f4f4; border-radius: 10px; padding: 20px; text-align: center; margin: 25px 0;">
+                  <span style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #2d6a4f;">
+                    ${otp}
+                  </span>
+                </div>
+                <p style="color: #999; font-size: 13px;">If you didn't request this, ignore this email.</p>
+              </div>
+            `,
+          })
 
-// ✅ NEW: Verify OTP + Reset Password
-{
-  path: "/verify-otp",
-  method: "post",
-  handler: (async (req: any) => {
-    try {
-      const body = await req.json()
-      const { email, otp, newPassword } = body
+          return corsResponse(req, { success: true, message: "OTP sent to your email." })
 
-      if (!email || !otp || !newPassword) {
-        return Response.json({ error: "Email, OTP and new password are required" }, { status: 400 })
-      }
+        } catch (err: any) {
+          console.error("Forgot Password Error:", err.message)
+          return corsResponse(req, { error: "Failed to send OTP" }, 500)
+        }
+      }) as any,
+    },
 
-      if (newPassword.length < 6) {
-        return Response.json({ error: "Password must be at least 6 characters" }, { status: 400 })
-      }
+    // ✅ Verify OTP + Reset Password
+    {
+      path: "/verify-otp",
+      method: "post",
+      handler: (async (req: any) => {
+        try {
+          const body = await req.json()
+          const { email, otp, newPassword } = body
 
-      const customerSearch = await req.payload.find({
-        collection: 'customers',
-        where: { email: { equals: email } },
-        overrideAccess: true,
-      })
+          if (!email || !otp || !newPassword) {
+            return corsResponse(req, { error: "Email, OTP and new password are required" }, 400)
+          }
 
-      if (customerSearch.docs.length === 0) {
-        return Response.json({ error: "Customer not found" }, { status: 404 })
-      }
+          if (newPassword.length < 6) {
+            return corsResponse(req, { error: "Password must be at least 6 characters" }, 400)
+          }
 
-      const customer = customerSearch.docs[0] as any
+          const customerSearch = await req.payload.find({
+            collection: 'customers',
+            where: { email: { equals: email } },
+            overrideAccess: true,
+          })
 
-      if (!customer.resetOtp || !customer.resetOtpExpiry) {
-        return Response.json({ error: "No OTP requested. Please request a new one." }, { status: 400 })
-      }
+          if (customerSearch.docs.length === 0) {
+            return corsResponse(req, { error: "Customer not found" }, 404)
+          }
 
-      if (new Date() > new Date(customer.resetOtpExpiry)) {
-        return Response.json({ error: "OTP has expired. Please request a new one." }, { status: 400 })
-      }
+          const customer = customerSearch.docs[0] as any
 
-      if (customer.resetOtp !== otp) {
-        return Response.json({ error: "Incorrect OTP. Please try again." }, { status: 400 })
-      }
+          if (!customer.resetOtp || !customer.resetOtpExpiry) {
+            return corsResponse(req, { error: "No OTP requested. Please request a new one." }, 400)
+          }
 
-      await req.payload.update({
-        collection: 'customers',
-        id: customer.id,
-        data: {
-          password: newPassword,
-          resetOtp: null,
-          resetOtpExpiry: null,
-        },
-        overrideAccess: true,
-      })
+          if (new Date() > new Date(customer.resetOtpExpiry)) {
+            return corsResponse(req, { error: "OTP has expired. Please request a new one." }, 400)
+          }
 
-      return Response.json({ success: true, message: "Password reset successfully. Please log in." })
+          if (customer.resetOtp !== otp) {
+            return corsResponse(req, { error: "Incorrect OTP. Please try again." }, 400)
+          }
 
-    } catch (err: any) {
-      console.error("Verify OTP Error:", err.message)
-      return Response.json({ error: "Failed to verify OTP" }, { status: 500 })
-    }
-  }) as any,
-},
+          await req.payload.update({
+            collection: 'customers',
+            id: customer.id,
+            data: {
+              password: newPassword,
+              resetOtp: null,
+              resetOtpExpiry: null,
+            },
+            overrideAccess: true,
+          })
+
+          return corsResponse(req, { success: true, message: "Password reset successfully. Please log in." })
+
+        } catch (err: any) {
+          console.error("Verify OTP Error:", err.message)
+          return corsResponse(req, { error: "Failed to verify OTP" }, 500)
+        }
+      }) as any,
+    },
   ],
 
   access: {
@@ -339,8 +362,6 @@ const Customers: CollectionConfig = {
       ],
       defaultValue: "active",
     },
-
-    // ✅ NEW: OTP fields for password reset
     {
       name: "resetOtp",
       type: "text",
