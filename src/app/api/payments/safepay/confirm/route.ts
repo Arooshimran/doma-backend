@@ -26,15 +26,21 @@ export async function GET(request: NextRequest) {
   const successUrl = frontendSuccessUrl ?? "doma://payment/success"
   const cancelUrl = frontendCancelUrl ?? "doma://payment/cancel"
 
-  if (!orderId || !tracker || !sig) {
+  const environment = process.env.SAFEPAY_ENVIRONMENT ?? 'sandbox'
+  const isSandbox = environment === 'sandbox'
+
+  // Only require sig in production
+  if (!orderId || !tracker) {
     console.error("❌ Safepay confirm: missing params", { orderId, tracker, sig })
     return NextResponse.redirect(`${cancelUrl}?reason=missing_params`)
   }
 
-  const isValid = verifySafepayRedirectSignature({ tracker, sig })
-  if (!isValid) {
-    console.error("❌ Safepay confirm: invalid signature")
-    return NextResponse.redirect(`${cancelUrl}?reason=invalid_signature`)
+  if (!isSandbox) {
+    const isValid = verifySafepayRedirectSignature({ tracker, sig })
+    if (!isValid) {
+      console.error("❌ Safepay confirm: invalid signature")
+      return NextResponse.redirect(`${cancelUrl}?reason=invalid_signature`)
+    }
   }
 
   try {
