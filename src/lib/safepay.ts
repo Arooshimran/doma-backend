@@ -15,12 +15,19 @@ const normalizeEnvironment = (value: string | undefined) => {
   return "sandbox" as const
 }
 
+// ✅ FIXED: Now accepts doma:// deep link scheme in addition to http/https
 const ensureAbsoluteUrl = (value: string | undefined): string | null => {
   const input = String(value ?? "").trim()
   if (!input) return null
   try {
     const parsed = new URL(input)
-    if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.toString()
+    if (
+      parsed.protocol === "http:" ||
+      parsed.protocol === "https:" ||
+      parsed.protocol === "doma:"
+    ) {
+      return parsed.toString()
+    }
     return null
   } catch {
     return null
@@ -39,8 +46,6 @@ export const isSafepayPaymentMethod = (paymentMethod: string | null | undefined)
 
 export const getSafepayConfig = () => {
   const environment = normalizeEnvironment(process.env.SAFEPAY_ENVIRONMENT)
-
-  // ✅ ONLY use SAFEPAY_API_KEY — this must be your sec_xxxxx secret key
   const apiKey = String(process.env.SAFEPAY_API_KEY ?? "").trim()
   const v1Secret = String(process.env.SAFEPAY_SECRET_KEY ?? "").trim()
   const webhookSecret = String(process.env.SAFEPAY_WEBHOOK_SECRET ?? v1Secret).trim()
@@ -55,7 +60,6 @@ export const isSafepayConfigured = (): boolean => {
   return Boolean(apiKey && v1Secret)
 }
 
-// ✅ No module-level singleton — create fresh per request to avoid stale env issues
 export const getSafepayClient = (): Safepay => {
   const config = getSafepayConfig()
 
@@ -66,23 +70,23 @@ export const getSafepayClient = (): Safepay => {
     throw new Error("Safepay not configured: missing SAFEPAY_WEBHOOK_SECRET")
   }
 
-  // ✅ Log exactly what environment and key prefix are being used
   console.log(`[Safepay] Creating client | env=${config.environment} | key starts with: ${config.apiKey.slice(0, 8)}...`)
 
   return new Safepay({
     environment: config.environment as any,
-    apiKey: config.apiKey,     // must be sec_xxxxx
+    apiKey: config.apiKey,
     v1Secret: config.v1Secret,
     webhookSecret: config.webhookSecret,
   })
 }
 
+// ✅ FIXED: Removed * 100 — Safepay expects PKR directly, not paisas
 export const toMinorAmount = (amount: number): number => {
   const normalized = Number(amount)
   if (!Number.isFinite(normalized) || normalized <= 0) {
     throw new Error("Payment amount must be a positive number.")
   }
-  return Math.round(normalized * 100)
+  return Math.round(normalized)
 }
 
 export const getSafepayCallbackUrls = (origin: string) => {
@@ -100,6 +104,10 @@ console.log("ENV CHECK:", {
   SAFEPAY_API_KEY: process.env.SAFEPAY_API_KEY?.slice(0, 10),
   SAFEPAY_SECRET_KEY: process.env.SAFEPAY_SECRET_KEY?.slice(0, 10),
   SAFEPAY_ENVIRONMENT: process.env.SAFEPAY_ENVIRONMENT,
+  SAFEPAY_REDIRECT_URL: process.env.SAFEPAY_REDIRECT_URL,
+  SAFEPAY_CANCEL_URL: process.env.SAFEPAY_CANCEL_URL,
+  SAFEPAY_FRONTEND_SUCCESS_URL: process.env.SAFEPAY_FRONTEND_SUCCESS_URL,
+  SAFEPAY_FRONTEND_CANCEL_URL: process.env.SAFEPAY_FRONTEND_CANCEL_URL,
 })
 
 export const createSafepayCheckout = async ({
@@ -119,7 +127,6 @@ export const createSafepayCheckout = async ({
 
   console.log(`[Safepay] Creating payment | amount=${minorAmount} ${currency} | orderId=${orderId}`)
 
-  // ✅ SDK returns { token } directly
   const { token } = await client.payments.create({
     amount: minorAmount,
     currency,
@@ -136,9 +143,10 @@ export const createSafepayCheckout = async ({
     webhooks: true,
   })
 
+  console.log(`✅ Safepay Checkout created: ${token}`)
+
   return { tracker: token, checkoutUrl, minorAmount }
 }
-
 
 const pickFirstTruthy = (...values: Array<unknown>): string | null => {
   for (const value of values) {
