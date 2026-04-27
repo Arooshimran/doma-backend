@@ -1,5 +1,18 @@
 import type { Payload } from 'payload'
 
+function applyCloudinaryBackgroundRemoval(imageUrl: string): string {
+  // Only transform Cloudinary URLs
+  if (!imageUrl.includes('res.cloudinary.com')) {
+    console.warn('⚠️  Image is not a Cloudinary URL — skipping background removal')
+    return imageUrl
+  }
+
+  // Insert the background removal transformation before /upload/
+  // e.g. https://res.cloudinary.com/demo/image/upload/sample.jpg
+  //   → https://res.cloudinary.com/demo/image/upload/e_background_removal/sample.jpg
+  return imageUrl.replace('/upload/', '/upload/e_background_removal/')
+}
+
 export async function generate3DModel({
   productId,
   imageUrl,
@@ -18,7 +31,11 @@ export async function generate3DModel({
   }
 
   console.log(`🚀 Triggering 3D generation for product ${productId}`)
-  console.log(`   Image: ${imageUrl}`)
+  console.log(`   Original image: ${imageUrl}`)
+
+  // Strip background before sending to Modal
+  const cleanedImageUrl = applyCloudinaryBackgroundRemoval(imageUrl)
+  console.log(`   Cleaned image:  ${cleanedImageUrl}`)
 
   try {
     await payload.update({
@@ -31,7 +48,7 @@ export async function generate3DModel({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        image_url: imageUrl,
+        image_url: cleanedImageUrl, // sending background-removed image
         product_id: productId,
         password: MODAL_PASSWORD,
       }),

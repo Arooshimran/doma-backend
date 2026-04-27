@@ -26,6 +26,7 @@ const Products: CollectionConfig = {
       async ({ doc, operation, req }) => {
         // Only fire on initial product creation
         if (operation !== "create") return doc
+        if (!doc.featured) return doc  
 
         // Grab the first image from the images array
         const firstImage = doc.images?.[0]?.image
