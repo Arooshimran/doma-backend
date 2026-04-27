@@ -223,6 +223,8 @@ export interface Customer {
       }[]
     | null;
   status?: ('active' | 'suspended' | 'banned') | null;
+  resetOtp?: string | null;
+  resetOtpExpiry?: string | null;
   updatedAt: string;
   createdAt: string;
   email: string;
@@ -295,7 +297,7 @@ export interface Product {
    */
   title: string;
   /**
-   * This will be used in the product URL (e.g., yourstore.com/products/this-slug). Auto-generated from title.
+   * Used in the product URL (e.g., yourstore.com/products/this-slug). Auto-generated from title.
    */
   slug: string;
   /**
@@ -334,9 +336,21 @@ export interface Product {
       }[]
     | null;
   /**
-   * Upload a 3D model file if available.
+   * Upload a 3D model file manually if needed.
    */
   threeDModel?: (string | null) | Media;
+  /**
+   * Auto-generated GLB file URL. Populated automatically after product creation (~30-40 min).
+   */
+  model3dUrl?: string | null;
+  /**
+   * Tracks the status of the auto 3D model generation.
+   */
+  model3dStatus?: ('none' | 'processing' | 'ready' | 'failed') | null;
+  /**
+   * Timestamp of when the 3D model was successfully generated.
+   */
+  model3dGeneratedAt?: string | null;
   /**
    * Choose the most relevant category.
    */
@@ -473,6 +487,7 @@ export interface Order {
   orderStatus: 'pending' | 'paid' | 'processing' | 'shipped' | 'delivered' | 'canceled';
   paymentStatus?: ('pending' | 'paid' | 'failed') | null;
   paymentMethod?: string | null;
+  safepayTracker?: string | null;
   shippingAddress: {
     firstName?: string | null;
     lastName?: string | null;
@@ -688,6 +703,8 @@ export interface CustomersSelect<T extends boolean = true> {
         id?: T;
       };
   status?: T;
+  resetOtp?: T;
+  resetOtpExpiry?: T;
   updatedAt?: T;
   createdAt?: T;
   email?: T;
@@ -784,6 +801,9 @@ export interface ProductsSelect<T extends boolean = true> {
         id?: T;
       };
   threeDModel?: T;
+  model3dUrl?: T;
+  model3dStatus?: T;
+  model3dGeneratedAt?: T;
   category?: T;
   specifications?:
     | T
@@ -878,6 +898,7 @@ export interface OrdersSelect<T extends boolean = true> {
   orderStatus?: T;
   paymentStatus?: T;
   paymentMethod?: T;
+  safepayTracker?: T;
   shippingAddress?:
     | T
     | {

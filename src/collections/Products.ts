@@ -1,6 +1,6 @@
 import type { CollectionConfig } from "payload"
-import { slateEditor } from "@payloadcms/richtext-slate"
-import { isAdmin, isAdminOrVendor, ownRecord } from "@/lib/access-helpers"
+import { isAdmin, isAdminOrVendor } from "@/lib/access-helpers"
+import { generate3DModel } from "@/lib/generate3D"
 
 const Products: CollectionConfig = {
   slug: "products",
@@ -14,20 +14,58 @@ const Products: CollectionConfig = {
           data.slug = (data.title as string)
             .toLowerCase()
             .trim()
-            .replace(/[^\w\s-]/g, '') 
-            .replace(/\s+/g, '-') 
-            .replace(/-+/g, '-') 
-            .replace(/^-+|-+$/g, ''); 
-          }
-        return data;
+            .replace(/[^\w\s-]/g, "")
+            .replace(/\s+/g, "-")
+            .replace(/-+/g, "-")
+            .replace(/^-+|-+$/g, "")
+        }
+        return data
+      },
+    ],
+    afterChange: [
+      async ({ doc, operation, req }) => {
+        // Only fire on initial product creation
+        if (operation !== "create") return doc
+
+        // Grab the first image from the images array
+        const firstImage = doc.images?.[0]?.image
+        let imageUrl: string | undefined
+
+        if (typeof firstImage === "object" && firstImage?.url) {
+          // Image already populated with full object
+          imageUrl = firstImage.url
+        } else if (typeof firstImage === "string") {
+          // Image is just an ID — fetch full media record to get URL
+          const media = await req.payload.findByID({
+            collection: "media",
+            id: firstImage,
+          })
+          imageUrl = media?.url ?? undefined      
+        }
+
+        if (!imageUrl) {
+          console.warn(
+            `⚠️  Product ${doc.id} created with no image — skipping 3D generation`
+          )
+          return doc
+        }
+
+        // Fire and forget — don't block the save response
+        // Generation takes 30-40 min, runs in background
+        generate3DModel({
+          productId: doc.id,
+          imageUrl,
+          payload: req.payload,
+        }).catch((err) => console.error("❌ 3D generation hook error:", err))
+
+        return doc
       },
     ],
   },
   access: {
     read: () => true,
-    create: isAdminOrVendor, 
+    create: isAdminOrVendor,
     update: ({ req }) => {
-      
       if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return { vendor: { equals: req.user.id } }
@@ -35,7 +73,6 @@ const Products: CollectionConfig = {
       return false
     },
     delete: ({ req }) => {
-      // Admins can delete any product, vendors can delete their own
       if (isAdmin({ req })) return true
       if (req.user?.collection === "vendors") {
         return { vendor: { equals: req.user.id } }
@@ -44,6 +81,7 @@ const Products: CollectionConfig = {
     },
   },
   fields: [
+    // ─── Basic Info ───────────────────────────────────────────────
     {
       name: "title",
       label: "Product Name",
@@ -60,7 +98,8 @@ const Products: CollectionConfig = {
       required: true,
       unique: true,
       admin: {
-        description: "This will be used in the product URL (e.g., yourstore.com/products/this-slug). Auto-generated from title.",
+        description:
+          "Used in the product URL (e.g., yourstore.com/products/this-slug). Auto-generated from title.",
       },
     },
     {
@@ -71,17 +110,8 @@ const Products: CollectionConfig = {
         description: "A brief summary of the product.",
       },
     },
-    // {
-    //   name: "description",
-    //   label: "Full Description",
-    //   type: "richText",
-    //   editor: slateEditor({}),
-    //   admin: {
-    //     description: "Detailed product description.",
-    //   },
-    // },
 
-    // Pricing
+    // ─── Pricing ──────────────────────────────────────────────────
     {
       type: "group",
       name: "pricing",
@@ -100,22 +130,14 @@ const Products: CollectionConfig = {
           type: "number",
           min: 0,
           admin: {
-            description: "Show discount by adding original price (e.g., 500 crossed out).",
+            description:
+              "Show discount by adding original price (e.g., 500 crossed out).",
           },
         },
-        // {
-        //   name: "cost",
-        //   label: "Cost Price (private)",
-        //   type: "number",
-        //   min: 0,
-        //   admin: {
-        //     description: "Only visible to admins. Not shown to customers.",
-        //   },
-        // },
       ],
     },
 
-    // Rating (auto-calculated from reviews)
+    // ─── Rating ───────────────────────────────────────────────────
     {
       type: "group",
       name: "rating",
@@ -148,13 +170,12 @@ const Products: CollectionConfig = {
       ],
     },
 
-    // Stock
+    // ─── Inventory ────────────────────────────────────────────────
     {
       type: "group",
       name: "inventory",
       label: "Inventory",
       fields: [
-        
         {
           name: "quantity",
           label: "Available Quantity",
@@ -170,7 +191,7 @@ const Products: CollectionConfig = {
       ],
     },
 
-    // Media
+    // ─── Media ────────────────────────────────────────────────────
     {
       name: "images",
       label: "Product Images",
@@ -191,17 +212,55 @@ const Products: CollectionConfig = {
     },
     {
       name: "threeDModel",
-      label: "3D Model (optional)",
+      label: "3D Model (optional manual upload)",
       type: "upload",
       relationTo: "media",
       filterOptions: {
         mimeType: { contains: "model" },
       },
       admin: {
-        description: "Upload a 3D model file if available.",
+        description: "Upload a 3D model file manually if needed.",
       },
     },
 
+    // ─── Auto-generated 3D Model ──────────────────────────────────
+    {
+      name: "model3dUrl",
+      label: "3D Model URL (Auto-generated)",
+      type: "text",
+      admin: {
+        readOnly: true,
+        description:
+          "Auto-generated GLB file URL. Populated automatically after product creation (~30-40 min).",
+      },
+    },
+    {
+      name: "model3dStatus",
+      label: "3D Generation Status",
+      type: "select",
+      defaultValue: "none",
+      options: [
+        { label: "Not Generated", value: "none" },
+        { label: "Processing", value: "processing" },
+        { label: "Ready", value: "ready" },
+        { label: "Failed", value: "failed" },
+      ],
+      admin: {
+        readOnly: true,
+        description: "Tracks the status of the auto 3D model generation.",
+      },
+    },
+    {
+      name: "model3dGeneratedAt",
+      label: "3D Model Generated At",
+      type: "date",
+      admin: {
+        readOnly: true,
+        description: "Timestamp of when the 3D model was successfully generated.",
+      },
+    },
+
+    // ─── Other ────────────────────────────────────────────────────
     {
       name: "category",
       label: "Category",
@@ -211,7 +270,6 @@ const Products: CollectionConfig = {
         description: "Choose the most relevant category.",
       },
     },
-
     {
       name: "specifications",
       label: "Product Features",
@@ -221,24 +279,6 @@ const Products: CollectionConfig = {
         { name: "value", label: "Feature Value", type: "text", required: true },
       ],
     },
-
-    // {
-    //   name: "dimensions",
-    //   label: "Dimensions",
-    //   type: "group",
-    //   fields: [
-    //     { name: "length", type: "number" },
-    //     { name: "width", type: "number" },
-    //     { name: "height", type: "number" },
-    //     { name: "weight", type: "number" },
-    //     {
-    //       name: "unit",
-    //       type: "select",
-    //       options: ["cm", "inch", "mm"],
-    //     },
-    //   ],
-    // },
-
     {
       name: "status",
       label: "Product Status",
@@ -252,78 +292,59 @@ const Products: CollectionConfig = {
       ],
       defaultValue: "draft",
     },
-
     {
       name: "featured",
       label: "Mark as Featured",
       type: "checkbox",
       defaultValue: false,
     },
-
-    // SEO (Hidden by default or for advanced users)
-    // {
-    //   name: "seo",
-    //   label: "Search Engine Optimization (SEO)",
-    //   type: "group",
-    //   fields: [
-    //     { name: "metaTitle", type: "text" },
-    //     { name: "metaDescription", type: "textarea" },
-    //     { name: "keywords", type: "text" },
-    //   ],
-    //   admin: {
-    //     condition: () => false, // hide unless you want vendors to edit SEO
-    //   },
-    // },
-
     {
       name: "vendor",
       type: "relationship",
       relationTo: "vendors",
       required: true,
-      admin: { 
+      admin: {
         readOnly: true,
-        description: "Automatically assigned to the vendor who created this product"
+        description:
+          "Automatically assigned to the vendor who created this product",
       },
       hooks: {
         beforeChange: [
           ({ req, operation }) => {
             if (operation === "create" && req.user) {
-              return req.user.id;
+              return req.user.id
             }
           },
         ],
       },
     },
-
     {
-  name: "size",
-  type: "select",
-  required: false,
-  options: [
-    { label: "Small", value: "S" },
-    { label: "Medium", value: "M" },
-    { label: "Large", value: "L" },
-    { label: "Extra Large", value: "XL" },
-  ],
-  admin: {
-    isClearable: true, // allows deselecting
-  },
-},
-{
-  name: "colors",
-  label: "Colors",
-  type: "array",
-  required: false,
-  fields: [
-    {
-      name: "color",
-      type: "text",
-      label: "Color",
+      name: "size",
+      type: "select",
+      required: false,
+      options: [
+        { label: "Small", value: "S" },
+        { label: "Medium", value: "M" },
+        { label: "Large", value: "L" },
+        { label: "Extra Large", value: "XL" },
+      ],
+      admin: {
+        isClearable: true,
+      },
     },
-  ],
-}
-
-
+    {
+      name: "colors",
+      label: "Colors",
+      type: "array",
+      required: false,
+      fields: [
+        {
+          name: "color",
+          type: "text",
+          label: "Color",
+        },
+      ],
+    },
   ],
 }
 
