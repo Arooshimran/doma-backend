@@ -76,17 +76,7 @@ export async function POST(request: NextRequest) {
           status: 'active',
         },
       })
-
-      await payload.create({
-        collection: 'carts',
-        data: { customer: userDoc.id, items: [] },
-      })
-      await payload.create({
-        collection: 'wishlists',
-        data: { customer: userDoc.id, products: [] },
-      })
-
-      console.log("🛒 Cart & wishlist created for new user:", email)
+      console.log("✅ New customer created:", email)
     } else {
       // ── EXISTING USER ──────────────────────────────────────
       await payload.update({
@@ -97,36 +87,29 @@ export async function POST(request: NextRequest) {
           googleId,
         },
       })
+      console.log("✅ Existing user updated:", email)
+    }
 
-      // Check and create missing cart
-      const existingCart = await payload.find({
+    // ── ENSURE CART EXISTS (try/catch — unique constraint handles duplicates) ──
+    try {
+      await payload.create({
         collection: 'carts',
-        where: { customer: { equals: userDoc.id } },
-        limit: 1,
+        data: { customer: userDoc.id, items: [] },
       })
-      if (existingCart.docs.length === 0) {
-        await payload.create({
-          collection: 'carts',
-          data: { customer: userDoc.id, items: [] },
-        })
-        console.log("🛒 Missing cart created for existing user:", email)
-      }
+      console.log("🛒 Cart created for:", email)
+    } catch {
+      console.log("🛒 Cart already exists for:", email)
+    }
 
-      // Check and create missing wishlist
-      const existingWishlist = await payload.find({
+    // ── ENSURE WISHLIST EXISTS (try/catch — unique constraint handles duplicates) ──
+    try {
+      await payload.create({
         collection: 'wishlists',
-        where: { customer: { equals: userDoc.id } },
-        limit: 1,
+        data: { customer: userDoc.id, products: [] },
       })
-      if (existingWishlist.docs.length === 0) {
-        await payload.create({
-          collection: 'wishlists',
-          data: { customer: userDoc.id, products: [] },
-        })
-        console.log("💛 Missing wishlist created for existing user:", email)
-      }
-
-      console.log("✅ Existing user logged in:", email)
+      console.log("💛 Wishlist created for:", email)
+    } catch {
+      console.log("💛 Wishlist already exists for:", email)
     }
 
     // 3. Use Payload's own login to get a fully valid token
