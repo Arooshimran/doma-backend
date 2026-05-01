@@ -79,11 +79,11 @@ export async function POST(request: NextRequest) {
 
       await payload.create({
         collection: 'carts',
-        data: { userId: userDoc.id, items: [] },
+        data: { customer: userDoc.id, items: [] },
       })
       await payload.create({
         collection: 'wishlists',
-        data: { userId: userDoc.id, items: [] },
+        data: { customer: userDoc.id, products: [] },
       })
 
       console.log("🛒 Cart & wishlist created for new user:", email)
@@ -101,13 +101,13 @@ export async function POST(request: NextRequest) {
       // Check and create missing cart
       const existingCart = await payload.find({
         collection: 'carts',
-        where: { userId: { equals: userDoc.id } },
+        where: { customer: { equals: userDoc.id } },
         limit: 1,
       })
       if (existingCart.docs.length === 0) {
         await payload.create({
           collection: 'carts',
-          data: { userId: userDoc.id, items: [] },
+          data: { customer: userDoc.id, items: [] },
         })
         console.log("🛒 Missing cart created for existing user:", email)
       }
@@ -115,13 +115,13 @@ export async function POST(request: NextRequest) {
       // Check and create missing wishlist
       const existingWishlist = await payload.find({
         collection: 'wishlists',
-        where: { userId: { equals: userDoc.id } },
+        where: { customer: { equals: userDoc.id } },
         limit: 1,
       })
       if (existingWishlist.docs.length === 0) {
         await payload.create({
           collection: 'wishlists',
-          data: { userId: userDoc.id, items: [] },
+          data: { customer: userDoc.id, products: [] },
         })
         console.log("💛 Missing wishlist created for existing user:", email)
       }
