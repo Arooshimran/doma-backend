@@ -18,7 +18,6 @@ export async function OPTIONS(request: NextRequest) {
   })
 }
 
-// Derives a deterministic password from googleId + PAYLOAD_SECRET
 const deriveGooglePassword = (googleId: string) =>
   createHmac('sha256', process.env.PAYLOAD_SECRET!)
     .update(googleId)
@@ -65,6 +64,7 @@ export async function POST(request: NextRequest) {
     const googlePassword = deriveGooglePassword(googleId)
 
     if (!userDoc) {
+      // ── NEW USER ───────────────────────────────────────────
       console.log("🆕 Creating new Google customer:", email)
       userDoc = await payload.create({
         collection: 'customers',
@@ -72,12 +72,11 @@ export async function POST(request: NextRequest) {
           email,
           Name: name || 'Google User',
           googleId,
-          password: googlePassword, // ✅ deterministic, not random
+          password: googlePassword,
           status: 'active',
         },
       })
 
-      // ✅ Create cart and wishlist for new Google user
       await payload.create({
         collection: 'carts',
         data: { userId: userDoc.id, items: [] },
@@ -87,22 +86,50 @@ export async function POST(request: NextRequest) {
         data: { userId: userDoc.id, items: [] },
       })
 
-      console.log("🛒 Cart & wishlist created for:", email)
+      console.log("🛒 Cart & wishlist created for new user:", email)
     } else {
-      // ✅ Existing Google user — update their password to the deterministic one
-      // This fixes existing users who had a random password
+      // ── EXISTING USER ──────────────────────────────────────
       await payload.update({
         collection: 'customers',
         id: userDoc.id,
-        data: { 
+        data: {
           password: googlePassword,
-          googleId, // ✅ saves googleId if they didn't have one
+          googleId,
         },
       })
-      console.log("✅ Existing user updated:", email)
+
+      // Check and create missing cart
+      const existingCart = await payload.find({
+        collection: 'carts',
+        where: { userId: { equals: userDoc.id } },
+        limit: 1,
+      })
+      if (existingCart.docs.length === 0) {
+        await payload.create({
+          collection: 'carts',
+          data: { userId: userDoc.id, items: [] },
+        })
+        console.log("🛒 Missing cart created for existing user:", email)
+      }
+
+      // Check and create missing wishlist
+      const existingWishlist = await payload.find({
+        collection: 'wishlists',
+        where: { userId: { equals: userDoc.id } },
+        limit: 1,
+      })
+      if (existingWishlist.docs.length === 0) {
+        await payload.create({
+          collection: 'wishlists',
+          data: { userId: userDoc.id, items: [] },
+        })
+        console.log("💛 Missing wishlist created for existing user:", email)
+      }
+
+      console.log("✅ Existing user logged in:", email)
     }
 
-    // 3. ✅ Use Payload's own login to get a fully valid token
+    // 3. Use Payload's own login to get a fully valid token
     const loginResult = await payload.login({
       collection: 'customers',
       data: {
@@ -124,7 +151,7 @@ export async function POST(request: NextRequest) {
           Name: (userDoc as any).Name,
           status: userDoc.status,
           role: "customer",
-        }
+        },
       },
       { headers: corsHeaders(request) }
     )
@@ -134,7 +161,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Google authentication failed",
-        details: error instanceof Error ? error.message : "Unknown error"
+        details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500, headers: corsHeaders(request) }
     )
