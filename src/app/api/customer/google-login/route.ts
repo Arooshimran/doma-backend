@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         data: { userId: userDoc.id, items: [] },
       })
       await payload.create({
-        collection: 'wishlist',
+        collection: 'wishlists',
         data: { userId: userDoc.id, items: [] },
       })
 
