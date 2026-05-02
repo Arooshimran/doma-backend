@@ -46,7 +46,7 @@ export async function GET(request: NextRequest) {
     const customer = await payload.findByID({
       collection: "customers",
       id: customerId,
-      depth: 1, // 🔥 Added depth to get the full Avatar/Media object
+      depth: 1, 
       overrideAccess: true,
     })
     
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       id: customer.id,
       email: customer.email,
       Name: customer.Name || '',
-      avatar: customer.avatar || null, // 🔥 Now included in response
+      avatar: customer.avatar || null, 
       phone: customer.phone || '',
       role: customer.role || 'customer',
       status: customer.status || 'active',
@@ -115,7 +115,6 @@ export async function PUT(request: NextRequest) {
     if (body.phone !== undefined) updateData.phone = body.phone || ''
     if (body.addresses !== undefined) updateData.addresses = body.addresses
     
-    // 🔥 Allow updating the avatar (expects a Media ID string)
     if (body.avatar !== undefined) {
       updateData.avatar = body.avatar 
     }
@@ -124,7 +123,7 @@ export async function PUT(request: NextRequest) {
       collection: "customers",
       id: customerId,
       data: updateData,
-      depth: 1, // 🔥 Depth ensures we return the new image URL immediately
+      depth: 1, 
       overrideAccess: true,
     })
         
@@ -132,7 +131,7 @@ export async function PUT(request: NextRequest) {
       id: updatedCustomer.id,
       email: updatedCustomer.email,
       Name: updatedCustomer.Name || '',
-      avatar: updatedCustomer.avatar || null, // 🔥 Included in updated response
+      avatar: updatedCustomer.avatar || null, 
       phone: updatedCustomer.phone || '',
       role: updatedCustomer.role || 'customer',
       status: updatedCustomer.status || 'active',

@@ -17,11 +17,11 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
 
   try {
-    console.log("🔐 Vendor Login - Request received")
+    console.log("Vendor Login - Request received")
     // Parse request body
     const body = await request.json()
     const { email, password } = body
-    console.log("📧 Vendor Login - Email:", email)
+    console.log("Vendor Login - Email:", email)
 
     if (!email || !password) {
       console.error("Missing email or password")
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       collection: "vendors",
       data: { email, password },
     })
-    console.log("✅ Vendor Login - Success for:", email)
+    console.log("Vendor Login - Success for:", email)
 
     if (result?.user?.status === "pending") {
       return NextResponse.json(

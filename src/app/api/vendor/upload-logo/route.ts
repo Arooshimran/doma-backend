@@ -67,7 +67,6 @@ export async function POST(request: NextRequest) {
     }
     
 
-    // Validate file type
     const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
@@ -76,7 +75,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate file size (5MB max)
     const maxSize = 5 * 1024 * 1024 
     if (file.size > maxSize) {
       return NextResponse.json(

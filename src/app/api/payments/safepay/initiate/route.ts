@@ -2,13 +2,11 @@ import { type NextRequest, NextResponse } from "next/server"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 import { createSafepayCheckout, isSafepayConfigured } from "@/lib/safepay"
 
-// Helper for CORS
 const corsHeaders = (request?: NextRequest) =>
   buildCorsHeadersFromRequest(request, {
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Handle preflight requests
 export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, {
     status: 204,
@@ -18,9 +16,8 @@ export async function OPTIONS(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("💳 Safepay Initiate - Request received")
+    console.log("Safepay Initiate - Request received")
 
-    // 1. Check Configuration
     if (!isSafepayConfigured()) {
       return NextResponse.json(
         { error: "Safepay service is not configured" },
@@ -28,7 +25,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Parse & Validate Body
     const body = await request.json()
     const { amount, currency = "PKR", orderId } = body
 
@@ -39,10 +35,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Prepare Origin for Callbacks
     const origin = request.nextUrl.origin
 
-    // 4. Create Checkout Session
     const { checkoutUrl, tracker } = await createSafepayCheckout({
       amount,
       currency,
@@ -50,7 +44,7 @@ export async function POST(request: NextRequest) {
       origin,
     })
 
-    console.log(`✅ Safepay Checkout created: ${tracker}`)
+    console.log(`Safepay Checkout created: ${tracker}`)
 
     return NextResponse.json(
       { 
@@ -62,7 +56,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error("❌ Safepay initiate error:", error)
+    console.error("Safepay initiate error:", error)
     return NextResponse.json(
       { 
         error: "Failed to initialize Safepay session",

@@ -13,10 +13,8 @@ const ORDER_STATUS_OPTIONS = [
 
 const ORDER_STATUS_VALUES = ORDER_STATUS_OPTIONS.map((status) => status.value)
 
-// 🔥 UPDATED: Added "pending" to trigger stock deduction immediately on Order Placement
 const STOCK_CONFIRMATION_STATUSES = new Set(["pending", "paid", "processing", "shipped", "delivered"])
 
-// 🔥 FIXED: Now accepts 'req' directly to match the call in access hooks
 const getCustomerAccessFilter = (req: any) => {
   const user = req?.user as any
   if (user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
@@ -25,7 +23,6 @@ const getCustomerAccessFilter = (req: any) => {
   return false
 }
 
-// --- HELPER UTILITIES ---
 const resolveRelationId = (value: any): string | null => {
   if (!value) return null
   if (typeof value === "string") return value
@@ -54,7 +51,6 @@ const Orders: CollectionConfig = {
     useAsTitle: "orderNumber",
   },
   access: {
-    // 🔥 FIXED: Passing 'req' directly to the filter
     read: ({ req }) => {
       if (isAdmin({ req })) return true
       return getCustomerAccessFilter(req)
@@ -66,7 +62,7 @@ const Orders: CollectionConfig = {
     },
     delete: ({ req }) => {
       if (isAdmin({ req })) return true
-      return false // Customers cannot delete orders
+      return false
     },
   },
   fields: [
@@ -203,7 +199,6 @@ const Orders: CollectionConfig = {
         const prevStatus = originalDoc?.orderStatus
         const alreadyAdjusted = originalDoc?.inventoryAdjusted ?? false
 
-        // 🔥 1. RESTOCK LOGIC: If cancelling an order that already took stock
         if (nextStatus === 'canceled' && alreadyAdjusted) {
           const items = originalDoc?.items ?? []
           for (const item of items) {
@@ -225,11 +220,10 @@ const Orders: CollectionConfig = {
               },
             })
           }
-          data.inventoryAdjusted = false // Reset flag
+          data.inventoryAdjusted = false 
           return data
         }
 
-        // 2. DEDUCTION LOGIC: (Your existing code)
         const shouldAdjust = STOCK_CONFIRMATION_STATUSES.has(nextStatus) && !alreadyAdjusted
         if (!shouldAdjust) return data
 
@@ -270,7 +264,6 @@ const Orders: CollectionConfig = {
         try {
           const payload = req.payload;
           
-          // 1. Ensure we have a customer ID to work with
           const customerId = doc.customer && typeof doc.customer === 'object' 
             ? doc.customer.id 
             : doc.customer;
@@ -280,7 +273,6 @@ const Orders: CollectionConfig = {
             return;
           }
     
-          // 2. Fetch the customer profile
           const customer = await payload.findByID({
             collection: COLLECTION_SLUGS.CUSTOMERS,
             id: customerId,
@@ -288,12 +280,10 @@ const Orders: CollectionConfig = {
     
           if (!customer?.email) return;
     
-          // --- CASE A: New Order Created ---
           if (operation === "create") {
             await sendOrderConfirmationEmail(payload, doc, customer);
           } 
           
-          // --- CASE B: Status Updated (Pending -> Shipped, etc.) ---
           else if (operation === "update" && doc.orderStatus !== previousDoc?.orderStatus) {
             await sendOrderStatusUpdateEmail(payload, doc, customer);
           }
@@ -307,7 +297,6 @@ const Orders: CollectionConfig = {
 }
 
 async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: any) {
-  // Map the internal status values to user-friendly messages
   const statusMessages: Record<string, string> = {
     processing: "is now being processed and packed.",
     shipped: "has been shipped! It's on its way to you.",
@@ -357,7 +346,7 @@ async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: an
   }
 }
 
-// --- EMAIL NOTIFICATION FUNCTION ---
+// EMAIL NOTIFICATION FUNCTION 
 async function sendOrderConfirmationEmail(payload: any, order: any, customer: any) {
   try {
     await payload.sendEmail({

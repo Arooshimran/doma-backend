@@ -28,7 +28,7 @@ const Reviews: CollectionConfig = {
     defaultColumns: ["product", "customer", "rating", "verifiedPurchase", "createdAt"],
   },
   access: {
-    read: () => true, // Everyone can see reviews
+    read: () => true, 
     create: ({ req }) => req?.user?.collection === COLLECTION_SLUGS.CUSTOMERS,
     update: ({ req }) => {
       if (isAdmin({ req })) return true
@@ -89,7 +89,6 @@ const Reviews: CollectionConfig = {
         const payload = req.payload
         const user = req.user
 
-        // 1. Auto-assign Customer ID on Create
         if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS) {
           data.customer = user.id
         }
@@ -99,7 +98,6 @@ const Reviews: CollectionConfig = {
 
         if (!productId || !customerId) return data
 
-        // 🔥 2. PREVENT DUPLICATE REVIEWS
         if (operation === "create") {
           const existingReview = await payload.find({
             collection: COLLECTION_SLUGS.REVIEWS,
@@ -116,7 +114,6 @@ const Reviews: CollectionConfig = {
           }
         }
 
-        // 3. VERIFIED PURCHASE CHECK
         try {
           const orders = await payload.find({
             collection: COLLECTION_SLUGS.ORDERS,
@@ -138,7 +135,6 @@ const Reviews: CollectionConfig = {
             if (hasPurchased) break
           }
 
-          // Force check for customers on creation
           if (operation === "create" && user?.collection === COLLECTION_SLUGS.CUSTOMERS && !hasPurchased) {
             throw new Error("You can only review products you have purchased and paid for.")
           }
@@ -167,7 +163,6 @@ const Reviews: CollectionConfig = {
   },
 }
 
-// --- RATING SYNC UTILITY ---
 async function updateProductRating(payload: any, productId: string) {
   try {
     const reviews = await payload.find({

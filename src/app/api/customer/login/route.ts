@@ -17,10 +17,10 @@ export async function OPTIONS(request: NextRequest) {
 // POST - Customer Login
 export async function POST(request: NextRequest) {
   try {
-    console.log("🔐 Customer Login - Request received")
+    console.log("Customer Login - Request received")
     const body = await request.json()
     const { email, password } = body
-    console.log("📧 Customer Login - Email:", email)
+    console.log("Customer Login - Email:", email)
 
     if (!email || !password) {
       return NextResponse.json(
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
         password,
       },
     })
-    console.log("✅ Customer Login - Success for:", email)
+    console.log("Customer Login - Success for:", email)
 
     return NextResponse.json(
       {

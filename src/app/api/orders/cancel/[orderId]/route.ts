@@ -8,7 +8,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "PATCH, OPTIONS",
   })
 
-// Helper to decode the JWT from Flutter
 const getRequesterFromHeader = (request: NextRequest) => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader) return null
@@ -40,18 +39,16 @@ export async function PATCH(
   const payload = await getPayloadClient()
 
   try {
-    // 1. Fetch the Order
     const order = await payload.findByID({
       collection: COLLECTION_SLUGS.ORDERS,
       id: orderId,
-      depth: 0, // We only need IDs for stock restoration
+      depth: 0, 
     })
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404, headers })
     }
 
-    // 2. Security: Only the Customer who placed it (or Admin) can cancel
     const isOwner = requester.id === order.customer
     const isAdmin = requester.collection === COLLECTION_SLUGS.USERS
 
@@ -59,8 +56,6 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403, headers })
     }
 
-    // 3. Logic: Check if cancellation is allowed
-    // Vendors shouldn't see 'canceled' orders in their 'To Ship' list
     if (['shipped', 'delivered', 'canceled'].includes(order.orderStatus)) {
       return NextResponse.json(
         { error: `Cannot cancel an order that is ${order.orderStatus}` },
@@ -68,7 +63,6 @@ export async function PATCH(
       )
     }
 
-    // 4. Update Order Status
     await payload.update({
       collection: COLLECTION_SLUGS.ORDERS,
       id: orderId,
@@ -76,8 +70,7 @@ export async function PATCH(
       overrideAccess: true,
     })
 
-    // 5. RESTORE STOCK (Very important for DOMA inventory)
-// 5. RESTORE STOCK (Safe Version)
+    
 if (Array.isArray(order.items)) {
     for (const item of order.items) {
       const productId = typeof item.product === 'object' ? item.product.id : item.product
@@ -88,7 +81,6 @@ if (Array.isArray(order.items)) {
           id: productId,
         })
   
-        // Only update if the product actually exists!
         if (product) {
           await payload.update({
             collection: COLLECTION_SLUGS.PRODUCTS,
@@ -101,7 +93,6 @@ if (Array.isArray(order.items)) {
         }
       } catch (e) {
         console.warn(`Product ${productId} not found, skipping stock restoration.`);
-        // We don't want to throw an error here, just keep going with other items
       }
     }
   }

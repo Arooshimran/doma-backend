@@ -55,7 +55,6 @@ export async function GET(request: NextRequest) {
 
       const vendor = vendors.docs[0]
 
-      // Return vendor status information
       return NextResponse.json(
         {
           success: true,

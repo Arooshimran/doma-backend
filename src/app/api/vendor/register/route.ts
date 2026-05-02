@@ -17,10 +17,9 @@ export async function OPTIONS(request: NextRequest) {
 export async function POST(request: NextRequest) {
 
   try {
-    console.log("📝 Vendor Register - Request received")
+    console.log("Vendor Register - Request received")
     const vendorData = await request.json()
-    console.log("📧 Vendor Register - Email:", vendorData.email)
-    // Validate required fields
+    console.log("Vendor Register - Email:", vendorData.email)
     if (!vendorData.email || !vendorData.password || !vendorData.storeName) {
       return NextResponse.json(
         { 
@@ -34,7 +33,6 @@ export async function POST(request: NextRequest) {
 
     const payload = await getPayloadClient()
 
-    // Check if vendor already exists
     try {
       const existingVendor = await payload.find({
         collection: "vendors",
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
       collection: "vendors",
       data: vendorPayload,
     })
-    console.log("✅ Vendor Register - User created:", vendorData.email)
+    console.log("Vendor Register - User created:", vendorData.email)
     
     const endTime = Date.now()
 

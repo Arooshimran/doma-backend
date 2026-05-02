@@ -29,16 +29,15 @@ export async function GET(request: NextRequest) {
   const environment = process.env.SAFEPAY_ENVIRONMENT ?? 'sandbox'
   const isSandbox = environment === 'sandbox'
 
-  // Only require sig in production
   if (!orderId || !tracker) {
-    console.error("❌ Safepay confirm: missing params", { orderId, tracker, sig })
+    console.error("Safepay confirm: missing params", { orderId, tracker, sig })
     return NextResponse.redirect(`${cancelUrl}?reason=missing_params`)
   }
 
   if (!isSandbox) {
     const isValid = verifySafepayRedirectSignature({ tracker, sig })
     if (!isValid) {
-      console.error("❌ Safepay confirm: invalid signature")
+      console.error("Safepay confirm: invalid signature")
       return NextResponse.redirect(`${cancelUrl}?reason=invalid_signature`)
     }
   }
@@ -57,12 +56,11 @@ export async function GET(request: NextRequest) {
       overrideAccess: true,
     })
 
-    console.log(`✅ Safepay confirm: order ${orderId} marked as paid`)
     await clearPurchasedItemsFromCart({ payload, order })
 
     return NextResponse.redirect(`${successUrl}?orderId=${orderId}`)
   } catch (error) {
-    console.error("❌ Safepay confirm error:", error)
+    console.error("Safepay confirm error:", error)
     return NextResponse.redirect(`${cancelUrl}?reason=server_error`)
   }
 }

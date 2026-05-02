@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
 
                 <p><strong>We encourage you to reapply</strong> once you've addressed the concerns mentioned above. We appreciate your interest in our marketplace and look forward to potentially working with you in the future.</p>
 
-                <a href="http://localhost:3001/vendor/register" class="button">Submit New Application</a>
+                <a href="https://doma-gray.vercel.app/signup" class="button">Submit New Application</a>
 
                 <p>If you have any questions about this decision, please don't hesitate to contact our support team.</p>
               </div>
@@ -157,7 +157,7 @@ export async function POST(request: NextRequest) {
           
           We encourage you to reapply once you've addressed the concerns mentioned above.
           
-          Reapply URL: http://localhost:3001/vendor/register
+          Reapply URL:https://doma-gray.vercel.app/signup
         `
       })
 

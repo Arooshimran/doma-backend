@@ -1,15 +1,11 @@
 import type { Payload } from 'payload'
 
 function applyCloudinaryBackgroundRemoval(imageUrl: string): string {
-  // Only transform Cloudinary URLs
   if (!imageUrl.includes('res.cloudinary.com')) {
-    console.warn('⚠️  Image is not a Cloudinary URL — skipping background removal')
+    console.warn('Image is not a Cloudinary URL — skipping background removal')
     return imageUrl
   }
 
-  // Insert the background removal transformation before /upload/
-  // e.g. https://res.cloudinary.com/demo/image/upload/sample.jpg
-  //   → https://res.cloudinary.com/demo/image/upload/e_background_removal/sample.jpg
   return imageUrl.replace('/upload/', '/upload/e_background_removal/')
 }
 
@@ -26,14 +22,13 @@ export async function generate3DModel({
   const MODAL_PASSWORD = process.env.MODAL_3D_PASSWORD
 
   if (!MODAL_URL || !MODAL_PASSWORD) {
-    console.error('❌ MODAL_3D_URL or MODAL_3D_PASSWORD missing from .env')
+    console.error('MODAL_3D_URL or MODAL_3D_PASSWORD missing from .env')
     return
   }
 
-  console.log(`🚀 Triggering 3D generation for product ${productId}`)
+  console.log(`Triggering 3D generation for product ${productId}`)
   console.log(`   Original image: ${imageUrl}`)
 
-  // Strip background before sending to Modal
   const cleanedImageUrl = applyCloudinaryBackgroundRemoval(imageUrl)
   console.log(`   Cleaned image:  ${cleanedImageUrl}`)
 
@@ -48,11 +43,11 @@ export async function generate3DModel({
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        image_url: cleanedImageUrl, // sending background-removed image
+        image_url: cleanedImageUrl,
         product_id: productId,
         password: MODAL_PASSWORD,
       }),
-      signal: AbortSignal.timeout(3600000), // 1 hour
+      signal: AbortSignal.timeout(3600000), 
     })
 
     if (!response.ok) {
@@ -75,9 +70,9 @@ export async function generate3DModel({
       },
     })
 
-    console.log(`✅ 3D model saved for product ${productId}: ${result.glb_url}`)
+    console.log(`3D model saved for product ${productId}: ${result.glb_url}`)
   } catch (error: any) {
-    console.error(`❌ 3D generation failed for product ${productId}:`, error.message)
+    console.error(`3D generation failed for product ${productId}:`, error.message)
     await payload.update({
       collection: 'products',
       id: productId,

@@ -52,7 +52,7 @@ const Media: CollectionConfig = {
           return data
         }
 
-        // --- STEP 1: Upload to Cloudinary first (we need the URL to moderate) ---
+        // Upload to Cloudinary 
         let uploadResult: any
         try {
           uploadResult = await new Promise((resolve, reject) => {
@@ -77,7 +77,8 @@ const Media: CollectionConfig = {
           return data
         }
 
-        // --- STEP 2: Run moderation on the uploaded image URL ---
+
+        // Run moderation on the uploaded image URL
         try {
           const moderationUrl =
             `https://api.sightengine.com/1.0/check.json?` +
@@ -99,7 +100,6 @@ const Media: CollectionConfig = {
           const isOffensive = (moderationResult.nudity?.partial ?? 0) > 0.7
           const isGore = (moderationResult.gore?.prob ?? 0) > 0.6
           if (isExplicit || isOffensive || isGore) {
-            // Delete from Cloudinary immediately — don't keep inappropriate images
             try {
               await cloudinary.uploader.destroy(uploadResult.public_id)
               req.payload.logger.warn(
@@ -115,12 +115,11 @@ const Media: CollectionConfig = {
           }
 
         } catch (err: any) {
-          // Only block if it's our moderation rejection — not a network/API error
           if (err.message.includes('Image rejected')) throw err
           req.payload.logger.warn(`[Moderation] Check failed, allowing upload: ${err.message}`)
         }
 
-        // --- STEP 3: Save Cloudinary data ---
+        // Save Cloudinary data
         data.cloudinaryPublicId = uploadResult.public_id
         data.cloudinaryUrl = uploadResult.secure_url
 

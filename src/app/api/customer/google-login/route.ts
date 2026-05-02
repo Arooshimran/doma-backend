@@ -25,7 +25,7 @@ const deriveGooglePassword = (googleId: string) =>
 
 export async function POST(request: NextRequest) {
   try {
-    console.log("🔐 Google Login - Request received")
+    console.log("Google Login - Request received")
     const body = await request.json()
     const { idToken } = body
 
@@ -36,7 +36,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 1. Verify the ID Token with Google
     const ticket = await client.verifyIdToken({
       idToken,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -54,7 +53,6 @@ export async function POST(request: NextRequest) {
     const { email, name, sub: googleId } = googlePayload
     const payload = await getPayloadClient()
 
-    // 2. Find or Create Customer
     const customerSearch = await payload.find({
       collection: 'customers',
       where: { email: { equals: email } },
@@ -64,8 +62,6 @@ export async function POST(request: NextRequest) {
     const googlePassword = deriveGooglePassword(googleId)
 
     if (!userDoc) {
-      // ── NEW USER ───────────────────────────────────────────
-      console.log("🆕 Creating new Google customer:", email)
       userDoc = await payload.create({
         collection: 'customers',
         data: {
@@ -76,9 +72,8 @@ export async function POST(request: NextRequest) {
           status: 'active',
         },
       })
-      console.log("✅ New customer created:", email)
+      console.log("New Google customer created:", email)
     } else {
-      // ── EXISTING USER ──────────────────────────────────────
       await payload.update({
         collection: 'customers',
         id: userDoc.id,
@@ -87,32 +82,29 @@ export async function POST(request: NextRequest) {
           googleId,
         },
       })
-      console.log("✅ Existing user updated:", email)
+      console.log("Existing user updated:", email)
     }
 
-    // ── ENSURE CART EXISTS (try/catch — unique constraint handles duplicates) ──
     try {
       await payload.create({
         collection: 'carts',
         data: { customer: userDoc.id, items: [] },
       })
-      console.log("🛒 Cart created for:", email)
+      console.log("Cart created for:", email)
     } catch {
-      console.log("🛒 Cart already exists for:", email)
+      console.log("Cart already exists for:", email)
     }
 
-    // ── ENSURE WISHLIST EXISTS (try/catch — unique constraint handles duplicates) ──
     try {
       await payload.create({
         collection: 'wishlists',
         data: { customer: userDoc.id, products: [] },
       })
-      console.log("💛 Wishlist created for:", email)
+      console.log("Wishlist created for:", email)
     } catch {
-      console.log("💛 Wishlist already exists for:", email)
+      console.log("Wishlist already exists for:", email)
     }
 
-    // 3. Use Payload's own login to get a fully valid token
     const loginResult = await payload.login({
       collection: 'customers',
       data: {
@@ -120,8 +112,6 @@ export async function POST(request: NextRequest) {
         password: googlePassword,
       },
     })
-
-    console.log("✅ Google Login - Success for:", email)
 
     return NextResponse.json(
       {
@@ -140,7 +130,7 @@ export async function POST(request: NextRequest) {
     )
 
   } catch (error) {
-    console.error("❌ Google login error:", error)
+    console.error("Google login error:", error)
     return NextResponse.json(
       {
         error: "Google authentication failed",

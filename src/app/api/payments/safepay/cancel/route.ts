@@ -28,9 +28,8 @@ export async function GET(request: NextRequest) {
         data: { paymentStatus: "failed" },
         overrideAccess: true,
       })
-      console.log(`⚠️ Safepay cancel: order ${orderId} marked as failed`)
     } catch (error) {
-      console.error("❌ Safepay cancel update error:", error)
+      console.error("Safepay cancel update error:", error)
     }
   }
 

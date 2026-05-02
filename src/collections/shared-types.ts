@@ -15,5 +15,4 @@ export const COLLECTION_SLUGS = {
   WISHLISTS: 'wishlists',
 } as const;
 
-// Create the union type from the constant values
 export type CollectionSlug = typeof COLLECTION_SLUGS[keyof typeof COLLECTION_SLUGS];

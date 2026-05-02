@@ -70,7 +70,6 @@ export async function GET(
       overrideAccess: true,
     })
 
-    // Format response to exclude sensitive data
     const publicReviews = reviews.docs.map((review: any) => ({
       id: review.id,
       rating: review.rating,

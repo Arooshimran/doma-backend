@@ -66,7 +66,6 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      // Convert file to buffer and upload to Payload Media collection
       const arrayBuffer = await file.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
 

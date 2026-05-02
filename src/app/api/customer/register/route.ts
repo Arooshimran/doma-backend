@@ -17,10 +17,10 @@ export async function OPTIONS(request: NextRequest) {
 // POST - Customer Registration
 export async function POST(request: NextRequest) {
   try {
-    console.log("📝 Customer Register - Request received")
+    console.log("Customer Register - Request received")
     const body = await request.json()
     const { email, password, Name, phone } = body
-    console.log("📧 Customer Register - Email:", email)
+    console.log("Customer Register - Email:", email)
 
     if (!email || !password || !Name) {
       return NextResponse.json(
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
         ...(phone && { phone }),
       },
     })
-    console.log("✅ Customer Register - User created:", email)
+    console.log("Customer Register - User created:", email)
 
     try {
       await payload.create({
@@ -109,7 +109,6 @@ export async function POST(request: NextRequest) {
       console.error("Failed to create wishlist for new customer:", wishlistError)
     }
 
-    // Automatically log in the new customer after registration
     const loginResult = await payload.login({
       collection: "customers",
       data: {

@@ -24,19 +24,15 @@ const Products: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, operation, req }) => {
-        // Only fire on initial product creation
         if (operation !== "create") return doc
         // if (!doc.featured) return doc  
 
-        // Grab the first image from the images array
         const firstImage = doc.images?.[0]?.image
         let imageUrl: string | undefined
 
         if (typeof firstImage === "object" && firstImage?.url) {
-          // Image already populated with full object
           imageUrl = firstImage.url
         } else if (typeof firstImage === "string") {
-          // Image is just an ID — fetch full media record to get URL
           const media = await req.payload.findByID({
             collection: "media",
             id: firstImage,
@@ -46,18 +42,16 @@ const Products: CollectionConfig = {
 
         if (!imageUrl) {
           console.warn(
-            `⚠️  Product ${doc.id} created with no image — skipping 3D generation`
+            `Product ${doc.id} created with no image — skipping 3D generation`
           )
           return doc
         }
 
-        // Fire and forget — don't block the save response
-        // Generation takes 30-40 min, runs in background
         generate3DModel({
           productId: doc.id,
           imageUrl,
           payload: req.payload,
-        }).catch((err) => console.error("❌ 3D generation hook error:", err))
+        }).catch((err) => console.error("3D generation hook error:", err))
 
         return doc
       },

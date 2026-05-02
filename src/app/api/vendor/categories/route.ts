@@ -79,7 +79,6 @@ export async function POST(request: NextRequest) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '')
 
-    // Check if category with this name already exists
     const existingCategories = await payload.find({
       collection: "categories",
       where: {

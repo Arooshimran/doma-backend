@@ -15,7 +15,6 @@ const normalizeEnvironment = (value: string | undefined) => {
   return "sandbox" as const
 }
 
-// ✅ FIXED: Now accepts doma:// deep link scheme in addition to http/https
 const ensureAbsoluteUrl = (value: string | undefined): string | null => {
   const input = String(value ?? "").trim()
   if (!input) return null
@@ -70,7 +69,6 @@ export const getSafepayClient = (): Safepay => {
     throw new Error("Safepay not configured: missing SAFEPAY_WEBHOOK_SECRET")
   }
 
-  console.log(`[Safepay] Creating client | env=${config.environment} | key starts with: ${config.apiKey.slice(0, 8)}...`)
 
   return new Safepay({
     environment: config.environment as any,
@@ -80,7 +78,6 @@ export const getSafepayClient = (): Safepay => {
   })
 }
 
-// ✅ FIXED: Removed * 100 — Safepay expects PKR directly, not paisas
 export const toMinorAmount = (amount: number): number => {
   const normalized = Number(amount)
   if (!Number.isFinite(normalized) || normalized <= 0) {
@@ -100,15 +97,6 @@ export const getSafepayCallbackUrls = (origin: string) => {
   return { redirectUrl, cancelUrl }
 }
 
-console.log("ENV CHECK:", {
-  SAFEPAY_API_KEY: process.env.SAFEPAY_API_KEY?.slice(0, 10),
-  SAFEPAY_SECRET_KEY: process.env.SAFEPAY_SECRET_KEY?.slice(0, 10),
-  SAFEPAY_ENVIRONMENT: process.env.SAFEPAY_ENVIRONMENT,
-  SAFEPAY_REDIRECT_URL: process.env.SAFEPAY_REDIRECT_URL,
-  SAFEPAY_CANCEL_URL: process.env.SAFEPAY_CANCEL_URL,
-  SAFEPAY_FRONTEND_SUCCESS_URL: process.env.SAFEPAY_FRONTEND_SUCCESS_URL,
-  SAFEPAY_FRONTEND_CANCEL_URL: process.env.SAFEPAY_FRONTEND_CANCEL_URL,
-})
 
 export const createSafepayCheckout = async ({
   amount,
@@ -132,8 +120,6 @@ export const createSafepayCheckout = async ({
     currency,
   })
 
-  console.log(`[Safepay] Got token: ${token}`)
-
   const checkoutUrl = client.checkout.create({
     token,
     orderId,
@@ -143,7 +129,7 @@ export const createSafepayCheckout = async ({
     webhooks: true,
   })
 
-  console.log(`✅ Safepay Checkout created: ${token}`)
+  console.log(`Safepay Checkout created: ${token}`)
 
   return { tracker: token, checkoutUrl, minorAmount }
 }

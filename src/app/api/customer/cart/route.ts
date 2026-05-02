@@ -8,7 +8,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "GET, OPTIONS",
   })
 
-// Helper: extract customer ID from JWT token
 const getCustomerIdFromToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("JWT ")) return null

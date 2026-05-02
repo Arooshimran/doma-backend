@@ -92,7 +92,7 @@ const Vendors: CollectionConfig = {
     ],
     afterChange: [
       async ({ doc, req, operation, previousDoc }) => {
-        // Send email when vendor status changes (only when changed via admin panel)
+        // Send email when vendor status changes
         if (operation === "update" && doc.status !== previousDoc?.status) {
           
           try {
@@ -137,7 +137,6 @@ const Vendors: CollectionConfig = {
       required: true,
       access: {
         update: ({ req }) => {
-          // Only (admins) can change status
           return req.user?.collection === "users"
         },
       },
@@ -248,7 +247,7 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
 
             <p>You can now log in to your vendor dashboard and start selling!</p>
             <p style="text-align: center;">
-              <a href="http://localhost:3001/vendor/login" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              <a href="https://doma-gray.vercel.app/login/vendor" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
                 Login to Dashboard
               </a>
             </p>
@@ -256,7 +255,7 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
           </div>
         </div>
       `,
-      text: `Congratulations! Your vendor application has been approved! You can now log in at: http://localhost:3001/vendor/login`
+      text: `Congratulations! Your vendor application has been approved! You can now log in at: https://doma-gray.vercel.app/login/vendor`
     })
     
   } catch (error: any) {
@@ -298,14 +297,14 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
 
             <p>We encourage you to reapply once you've addressed any concerns.</p>
             <p style="text-align: center;">
-              <a href="http://localhost:3001/vendor/register" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              <a href="https://doma-gray.vercel.app/signup" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
                 Submit New Application
               </a>
             </p>
           </div>
         </div>
       `,
-      text: `Update on your vendor application. We are unable to approve your application at this time. ${vendor.rejectionReason ? `Reason: ${vendor.rejectionReason}` : ''} You can reapply at: http://localhost:3001/vendor/register`
+      text: `Update on your vendor application. We are unable to approve your application at this time. ${vendor.rejectionReason ? `Reason: ${vendor.rejectionReason}` : ''} You can reapply at: https://doma-gray.vercel.app/signup`
     })
     
   } catch (error: any) {

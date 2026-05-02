@@ -8,7 +8,6 @@ const corsHeaders = (request?: NextRequest) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// Helper: extract customer ID from JWT token
 const getCustomerIdFromToken = async (request: NextRequest): Promise<string | null> => {
   const authHeader = request.headers.get("Authorization")
   if (!authHeader || !authHeader.startsWith("JWT ")) return null
@@ -73,7 +72,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Check if new password is different from current password
     if (currentPassword === newPassword) {
       return NextResponse.json(
         { error: "New password must be different from current password" },
@@ -112,7 +110,6 @@ export async function POST(request: NextRequest) {
       )
     }
     
-    // Update password - Payload will automatically hash it
     await payload.update({
       collection: COLLECTION_SLUGS.CUSTOMERS,
       id: customerId,

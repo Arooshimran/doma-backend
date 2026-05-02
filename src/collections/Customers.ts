@@ -13,7 +13,6 @@ const corsHeaders = (request?: any) =>
     "Access-Control-Allow-Methods": "POST, OPTIONS",
   })
 
-// ✅ CORS-aware response helper using your existing buildCorsHeaders
 const corsResponse = (req: any, data: any, status: number = 200) => {
   const origin = req?.headers?.get?.('origin') ?? req?.headers?.origin
   const headers = buildCorsHeaders(origin, {
@@ -29,7 +28,6 @@ const Customers: CollectionConfig = {
   admin: { useAsTitle: "email" },
 
   endpoints: [
-    // --- Existing Email/Password Login ---
     {
       path: "/login",
       method: "post",
@@ -145,22 +143,21 @@ const Customers: CollectionConfig = {
         }
       }) as any,
     },
-
-    // ✅ OPTIONS for forgot-password
+    // forgot-password
     {
       path: "/forgot-password",
       method: "options",
       handler: (async (req: any) => corsResponse(req, { message: "OK" })) as any,
     },
 
-    // ✅ OPTIONS for verify-otp
+    // verify-otp
     {
       path: "/verify-otp",
       method: "options",
       handler: (async (req: any) => corsResponse(req, { message: "OK" })) as any,
     },
 
-    // ✅ Forgot Password - Send OTP
+    // Send OTP
     {
       path: "/forgot-password",
       method: "post",
@@ -226,7 +223,7 @@ const Customers: CollectionConfig = {
       }) as any,
     },
 
-    // ✅ Verify OTP + Reset Password
+    // Verify OTP + Reset Password
     {
       path: "/verify-otp",
       method: "post",

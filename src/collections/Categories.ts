@@ -8,10 +8,10 @@ const Categories: CollectionConfig = {
     defaultColumns: ["name", "slug", "isActive", "sortOrder"],
   },
   access: {
-    read: () => true, // Public read access
-    create: isAdmin, // Only admins can create categories
-    update: isAdmin, // Only admins can update categories
-    delete: isAdmin, // Only admins can delete categories
+    read: () => true, 
+    create: isAdmin, 
+    update: isAdmin, 
+    delete: isAdmin, 
   },
   fields: [
     {
