@@ -36,47 +36,74 @@ export async function PATCH(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers })
   }
 
-  const isAdmin = requester.collection === COLLECTION_SLUGS.USERS
-  const isVendor = requester.collection === COLLECTION_SLUGS.VENDORS
-
-  if (!isAdmin && !isVendor) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers })
-  }
-
   const payload = await getPayloadClient()
 
   try {
     const order = await payload.findByID({
       collection: COLLECTION_SLUGS.ORDERS,
       id: orderId,
-      depth: 0,
+      depth: 0, 
     })
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404, headers })
     }
 
-    const body = await request.json()
-    const { orderStatus } = body
+    const isOwner = requester.id === order.customer
+    const isAdmin = requester.collection === COLLECTION_SLUGS.USERS
 
-    const validStatuses = ["pending", "paid", "processing", "shipped", "delivered", "canceled"]
-    if (!validStatuses.includes(orderStatus)) {
+    if (!isOwner && !isAdmin) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403, headers })
+    }
+
+    if (['shipped', 'delivered', 'canceled'].includes(order.orderStatus)) {
       return NextResponse.json(
-        { error: `Invalid status: ${orderStatus}` },
+        { error: `Cannot cancel an order that is ${order.orderStatus}` },
         { status: 400, headers }
       )
     }
 
-    const updatedOrder = await payload.update({
+    await payload.update({
       collection: COLLECTION_SLUGS.ORDERS,
       id: orderId,
-      data: { orderStatus },
+      data: { orderStatus: 'canceled' },
       overrideAccess: true,
     })
 
-    return NextResponse.json(updatedOrder, { status: 200, headers })
+    
+if (Array.isArray(order.items)) {
+    for (const item of order.items) {
+      const productId = typeof item.product === 'object' ? item.product.id : item.product
+      
+      try {
+        const product = await payload.findByID({
+          collection: COLLECTION_SLUGS.PRODUCTS,
+          id: productId,
+        })
+  
+        if (product) {
+          await payload.update({
+            collection: COLLECTION_SLUGS.PRODUCTS,
+            id: productId,
+            data: {
+              quantity: (Number(product.quantity) || 0) + (Number(item.quantity) || 0),
+            },
+            overrideAccess: true,
+          })
+        }
+      } catch (e) {
+        console.warn(`Product ${productId} not found, skipping stock restoration.`);
+      }
+    }
+  }
+
+    return NextResponse.json({ 
+      success: true, 
+      message: "Order canceled and stock restored." 
+    }, { status: 200, headers })
+
   } catch (error) {
-    console.error("Update Order Error:", error)
+    console.error("Cancellation Error:", error)
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500, headers })
   }
 }
