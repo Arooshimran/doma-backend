@@ -73,6 +73,9 @@ export async function generate3DModel({
     console.log(`3D model saved for product ${productId}: ${result.glb_url}`)
   } catch (error: any) {
     console.error(`3D generation failed for product ${productId}:`, error.message)
+    console.error('Fetch error cause:', error.cause)
+    console.error('Fetch error name:', error.name)
+    console.error('Fetch error stack:', error.stack)
     await payload.update({
       collection: 'products',
       id: productId,
