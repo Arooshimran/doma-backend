@@ -5,7 +5,7 @@ import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
 
 const corsHeaders = (request?: NextRequest) =>
   buildCorsHeadersFromRequest(request, {
-    "Access-Control-Allow-Methods": "GET, PATCH, OPTIONS",
+    "Access-Control-Allow-Methods": "PATCH, OPTIONS",
   })
 
 const getRequesterFromHeader = (request: NextRequest) => {
@@ -24,46 +24,6 @@ export async function OPTIONS(request: NextRequest) {
   return new NextResponse(null, { status: 204, headers: corsHeaders(request) })
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ orderId: string }> }
-) {
-  const headers = corsHeaders(request)
-  const { orderId } = await params
-  const requester = getRequesterFromHeader(request)
-
-  if (!requester) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers })
-  }
-
-  const payload = await getPayloadClient()
-
-  try {
-    const order = await payload.findByID({
-      collection: COLLECTION_SLUGS.ORDERS,
-      id: orderId,
-      depth: 2,
-    })
-
-    if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404, headers })
-    }
-
-    const isOwner = requester.id === order.customer
-    const isAdmin = requester.collection === COLLECTION_SLUGS.USERS
-    const isVendor = requester.collection === COLLECTION_SLUGS.VENDORS
-
-    if (!isOwner && !isAdmin && !isVendor) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403, headers })
-    }
-
-    return NextResponse.json(order, { status: 200, headers })
-  } catch (error) {
-    console.error("Get Order Error:", error)
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500, headers })
-  }
-}
-
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ orderId: string }> }
@@ -74,6 +34,13 @@ export async function PATCH(
 
   if (!requester) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401, headers })
+  }
+
+  const isAdmin = requester.collection === COLLECTION_SLUGS.USERS
+  const isVendor = requester.collection === COLLECTION_SLUGS.VENDORS
+
+  if (!isAdmin && !isVendor) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403, headers })
   }
 
   const payload = await getPayloadClient()
@@ -87,14 +54,6 @@ export async function PATCH(
 
     if (!order) {
       return NextResponse.json({ error: "Order not found" }, { status: 404, headers })
-    }
-
-    const isAdmin = requester.collection === COLLECTION_SLUGS.USERS
-    const isVendor = requester.collection === COLLECTION_SLUGS.VENDORS
-
-    // Only admins and vendors can update order status
-    if (!isAdmin && !isVendor) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403, headers })
     }
 
     const body = await request.json()
