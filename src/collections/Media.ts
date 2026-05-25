@@ -30,6 +30,17 @@ const Media: CollectionConfig = {
 
   upload: {
     disableLocalStorage: process.env.DISABLE_LOCAL_STORAGE === 'true',
+  
+    limits: {
+      fileSize: 5 * 1024 * 1024,
+    },
+  
+    mimeTypes: [
+      'image/jpeg',
+      'image/png',
+      'image/webp',
+      'image/avif',
+    ],
   },
 
   hooks: {
