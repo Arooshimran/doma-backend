@@ -30,11 +30,8 @@ const Media: CollectionConfig = {
 
   upload: {
     disableLocalStorage: process.env.DISABLE_LOCAL_STORAGE === 'true',
-  
-    limits: {
-      fileSize: 5 * 1024 * 1024,
-    },
-  
+
+    // NOTE: limits removed because not supported in this Payload version
     mimeTypes: [
       'image/jpeg',
       'image/png',
@@ -52,6 +49,34 @@ const Media: CollectionConfig = {
     ],
 
     beforeChange: [
+      // ✅ FILE VALIDATION (size + mime)
+      async ({ req, operation }) => {
+        const file = req.file
+
+        if (file?.data) {
+          const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+
+          if (file.data.length > MAX_SIZE) {
+            throw new Error('File too large. Maximum allowed size is 5MB.')
+          }
+
+          const allowedMimeTypes = [
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+            'image/avif',
+          ]
+
+          if (
+            file.mimetype &&
+            !allowedMimeTypes.includes(file.mimetype)
+          ) {
+            throw new Error('Unsupported file type.')
+          }
+        }
+      },
+
+      // MAIN LOGIC
       async ({ data, req, operation, originalDoc }) => {
         const fileBuffer = req.file?.data
 
@@ -63,8 +88,9 @@ const Media: CollectionConfig = {
           return data
         }
 
-        // Upload to Cloudinary 
+        // Upload to Cloudinary
         let uploadResult: any
+
         try {
           uploadResult = await new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
@@ -79,17 +105,21 @@ const Media: CollectionConfig = {
                 else resolve(result)
               }
             )
+
             stream.end(fileBuffer)
           })
 
-          req.payload.logger.info(`Cloudinary upload success → ${uploadResult.public_id}`)
+          req.payload.logger.info(
+            `Cloudinary upload success → ${uploadResult.public_id}`
+          )
         } catch (err: any) {
-          req.payload.logger.error(`Cloudinary upload failed → ${err.message}`)
+          req.payload.logger.error(
+            `Cloudinary upload failed → ${err.message}`
+          )
           return data
         }
 
-
-        // Run moderation on the uploaded image URL
+        // Moderation
         try {
           const moderationUrl =
             `https://api.sightengine.com/1.0/check.json?` +
@@ -103,50 +133,40 @@ const Media: CollectionConfig = {
           const moderationRes = await fetch(moderationUrl)
           const moderationResult = await moderationRes.json()
 
-          req.payload.logger.info(
-            `[Moderation] Result for ${uploadResult.public_id}: nudity=${moderationResult.nudity?.raw} offensive=${moderationResult.nudity?.partial}`
-          )
-
           const isExplicit = (moderationResult.nudity?.raw ?? 0) > 0.6
           const isOffensive = (moderationResult.nudity?.partial ?? 0) > 0.7
           const isGore = (moderationResult.gore?.prob ?? 0) > 0.6
+
           if (isExplicit || isOffensive || isGore) {
             try {
               await cloudinary.uploader.destroy(uploadResult.public_id)
-              req.payload.logger.warn(
-                `[Moderation] Rejected & deleted from Cloudinary → ${uploadResult.public_id}`
-              )
-            } catch (deleteErr: any) {
-              req.payload.logger.warn(
-                `[Moderation] Could not delete rejected image → ${deleteErr.message}`
-              )
-            }
+            } catch {}
 
-            throw new Error('Image rejected: inappropriate, violent, or poor quality image detected. Please upload a clear, suitable image.')
+            throw new Error(
+              'Image rejected: inappropriate, violent, or poor quality image detected.'
+            )
           }
-
         } catch (err: any) {
           if (err.message.includes('Image rejected')) throw err
-          req.payload.logger.warn(`[Moderation] Check failed, allowing upload: ${err.message}`)
         }
 
         // Save Cloudinary data
         data.cloudinaryPublicId = uploadResult.public_id
         data.cloudinaryUrl = uploadResult.secure_url
 
+        // Replace old image on update
         if (
           operation === 'update' &&
           originalDoc?.cloudinaryPublicId &&
           originalDoc.cloudinaryPublicId !== uploadResult.public_id
         ) {
           try {
-            await cloudinary.uploader.destroy(originalDoc.cloudinaryPublicId)
-            req.payload.logger.info(
-              `Cloudinary replaced → deleted ${originalDoc.cloudinaryPublicId}`
+            await cloudinary.uploader.destroy(
+              originalDoc.cloudinaryPublicId
             )
-          } catch (deleteErr: any) {
+          } catch (err: any) {
             req.payload.logger.warn(
-              `Failed to delete old Cloudinary asset ${originalDoc.cloudinaryPublicId}: ${deleteErr.message}`
+              `Failed to delete old asset → ${err.message}`
             )
           }
         }
@@ -160,12 +180,11 @@ const Media: CollectionConfig = {
         try {
           if (doc?.cloudinaryPublicId) {
             await cloudinary.uploader.destroy(doc.cloudinaryPublicId)
-            req.payload.logger.info(`Cloudinary deleted → ${doc.cloudinaryPublicId}`)
-          } else {
-            req.payload.logger.warn('No cloudinaryPublicId found on deleted document')
           }
         } catch (err) {
-          req.payload.logger.error(`Cloudinary delete failed → ${err}`)
+          req.payload.logger.error(
+            `Cloudinary delete failed → ${err}`
+          )
         }
       },
     ],
