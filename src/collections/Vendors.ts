@@ -176,6 +176,16 @@ const Vendors: CollectionConfig = {
         read: ({ req }) => req.user?.collection === "users"},
     },
     {
+      name: "deliveryCharges",
+      type: "number",
+      label: "Delivery Charges",
+      defaultValue: 250,
+      admin: {
+        placeholder: "250",
+        description: "Default delivery charge is PKR 250. You can override it with your own rate.",
+      },
+    },
+    {
       name: "businessType",
       type: "group",
       fields: [
@@ -195,8 +205,7 @@ const Vendors: CollectionConfig = {
         condition: (data) => data.status === "approved",
       },
     },
-   
-    
+  
     {
       name: "rejectionReason",
       type: "textarea",

@@ -56,6 +56,18 @@ const Products: CollectionConfig = {
         return doc
       },
     ],
+    // afterChange: [
+    //   async ({ doc, operation, req }) => {
+    //     if (operation !== "create") return doc
+    //     // ── 3D generation disabled during seeding ──
+    //     // generate3DModel({
+    //     //   productId: doc.id,
+    //     //   imageUrl,
+    //     //   payload: req.payload,
+    //     // }).catch((err) => console.error("3D generation hook error:", err))
+    //     return doc
+    //   },
+    // ],
   },
   access: {
     read: () => true,
