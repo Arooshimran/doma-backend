@@ -21,6 +21,15 @@ import Reviews from './collections/Reviews'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
+  'http://localhost:3000,http://localhost:3001,' +
+  'http://10.0.2.2:3000,http://10.0.2.2:10000,' +
+  'https://doma-backend.onrender.com,https://doma-gray.vercel.app,' +
+  'https://www.thedoma.shop,https://thedoma.shop')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean)
+
 export default buildConfig({
   admin: {
     user: Users.slug,
@@ -29,7 +38,6 @@ export default buildConfig({
     },
   },
 
-  // EMAIL CONFIGURATION (RESEND API)
   email: resendAdapter({
     defaultFromAddress: 'onboarding@resend.dev',
     defaultFromName: 'DOMA System',
@@ -72,30 +80,17 @@ export default buildConfig({
   ],
 
   cors: {
-    origin: (process.env.ALLOWED_ORIGINS ||
-      'http://localhost:3000,http://localhost:3001,' +
-      'http://10.0.2.2:3000,http://10.0.2.2:10000,' +
-      'https://doma-backend.onrender.com,https://doma-gray.vercel.app',
-      'https://www.thedoma.shop/')
-      .split(',')
-      .map((o) => o.trim())
-      .filter(Boolean),
+    origin: allowedOrigins,
     credentials: true,
-    methods: ['GET', 'POST', 'PUT','PATCH', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   },
-  
-  csrf: (process.env.ALLOWED_ORIGINS ||
-    'http://localhost:3000,http://localhost:3001,' +
-    'http://10.0.2.2:3000,http://10.0.2.2:10000,' +
-    'https://doma-backend.onrender.com,https://doma-gray.vercel.app, https://www.thedoma.shop/')
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean),
-  
+
+  csrf: allowedOrigins,
+
   cookies: {
     secure: process.env.NODE_ENV === 'production',
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
   },
-    
+
 } as any)
