@@ -256,7 +256,7 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
 
             <p>You can now log in to your vendor dashboard and start selling!</p>
             <p style="text-align: center;">
-              <a href="https://doma-gray.vercel.app/login/vendor" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              <a href="https://www.thedoma.shop/login/vendor" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
                 Login to Dashboard
               </a>
             </p>
@@ -264,7 +264,7 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
           </div>
         </div>
       `,
-      text: `Congratulations! Your vendor application has been approved! You can now log in at: https://doma-gray.vercel.app/login/vendor`
+      text: `Congratulations! Your vendor application has been approved! You can now log in at: https://www.thedoma.shop/login/vendor`
     })
     
   } catch (error: any) {
@@ -306,14 +306,14 @@ async function sendVendorRejectionEmail(payload: any, vendor: any) {
 
             <p>We encourage you to reapply once you've addressed any concerns.</p>
             <p style="text-align: center;">
-              <a href="https://doma-gray.vercel.app/signup" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
+              <a href="https://www.thedoma.shop/signup" style="display: inline-block; background: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px;">
                 Submit New Application
               </a>
             </p>
           </div>
         </div>
       `,
-      text: `Update on your vendor application. We are unable to approve your application at this time. ${vendor.rejectionReason ? `Reason: ${vendor.rejectionReason}` : ''} You can reapply at: https://doma-gray.vercel.app/signup`
+      text: `Update on your vendor application. We are unable to approve your application at this time. ${vendor.rejectionReason ? `Reason: ${vendor.rejectionReason}` : ''} You can reapply at: https://www.thedoma.shop/signup`
     })
     
   } catch (error: any) {

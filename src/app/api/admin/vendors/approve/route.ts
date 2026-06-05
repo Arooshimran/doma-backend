@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
                   <li>Begin receiving customer orders</li>
                 </ul>
 
-                <a href="https://doma-gray.vercel.app/login/vendor" class="button">Login to Dashboard</a>
+                <a href="https://www.thedoma.shop/login/vendor" class="button">Login to Dashboard</a>
 
                 <p>If you have any questions, please don't hesitate to contact our support team.</p>
                 <p>Welcome to the marketplace!</p>
@@ -131,8 +131,7 @@ export async function POST(request: NextRequest) {
           ${approvalNote ? `Admin Note: ${approvalNote}` : ''}
           
           You can now log in to your vendor dashboard and start selling!
-          Login URL: https://doma-gray.vercel.app/login/vendor
-          
+          Login URL: https://www.thedoma.shop/login/vendor
           Welcome to the marketplace!
         `
       })

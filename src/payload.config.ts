@@ -75,7 +75,8 @@ export default buildConfig({
     origin: (process.env.ALLOWED_ORIGINS ||
       'http://localhost:3000,http://localhost:3001,' +
       'http://10.0.2.2:3000,http://10.0.2.2:10000,' +
-      'https://doma-backend.onrender.com,https://doma-gray.vercel.app')
+      'https://doma-backend.onrender.com,https://doma-gray.vercel.app',
+      'https://www.thedoma.shop/')
       .split(',')
       .map((o) => o.trim())
       .filter(Boolean),
@@ -87,7 +88,7 @@ export default buildConfig({
   csrf: (process.env.ALLOWED_ORIGINS ||
     'http://localhost:3000,http://localhost:3001,' +
     'http://10.0.2.2:3000,http://10.0.2.2:10000,' +
-    'https://doma-backend.onrender.com,https://doma-gray.vercel.app')
+    'https://doma-backend.onrender.com,https://doma-gray.vercel.app, https://www.thedoma.shop/')
     .split(',')
     .map((o) => o.trim())
     .filter(Boolean),
