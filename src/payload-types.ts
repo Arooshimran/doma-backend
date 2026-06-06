@@ -433,6 +433,10 @@ export interface Vendor {
     city?: string | null;
     country?: string | null;
   };
+  /**
+   * Default delivery charge is PKR 250. You can override it with your own rate.
+   */
+  deliveryCharges?: number | null;
   businessType?: {
     businessType?: ('individual' | 'company' | 'partnership') | null;
   };
@@ -526,6 +530,15 @@ export interface Review {
   rating: number;
   title?: string | null;
   description: string;
+  /**
+   * Upload up to 5 images for your review.
+   */
+  images?:
+    | {
+        image: string | Media;
+        id?: string | null;
+      }[]
+    | null;
   verifiedPurchase?: boolean | null;
   helpfulCount?: number | null;
   updatedAt: string;
@@ -844,6 +857,7 @@ export interface VendorsSelect<T extends boolean = true> {
         city?: T;
         country?: T;
       };
+  deliveryCharges?: T;
   businessType?:
     | T
     | {
@@ -940,6 +954,12 @@ export interface ReviewsSelect<T extends boolean = true> {
   rating?: T;
   title?: T;
   description?: T;
+  images?:
+    | T
+    | {
+        image?: T;
+        id?: T;
+      };
   verifiedPurchase?: T;
   helpfulCount?: T;
   updatedAt?: T;

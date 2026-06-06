@@ -27,6 +27,30 @@ const Customers: CollectionConfig = {
   auth: true,
   admin: { useAsTitle: "email" },
 
+  hooks: {
+    beforeOperation: [
+      async ({ operation, args }) => {
+        if (operation === 'create') {
+          const email = args.data?.email
+          if (email) {
+            const domain = email.split('@')[1]
+            try {
+              const dns = await import('dns/promises')
+              const records = await dns.resolveMx(domain)
+              if (!records || records.length === 0) {
+                throw new Error('Email domain does not exist or cannot receive emails.')
+              }
+            } catch (err: any) {
+              if (err.message.includes('domain does not exist') || err.message.includes('cannot receive emails')) throw err
+              throw new Error('Invalid email domain.')
+            }
+          }
+        }
+        return args
+      },
+    ],
+  },
+
   endpoints: [
     {
       path: "/login",
@@ -143,6 +167,7 @@ const Customers: CollectionConfig = {
         }
       }) as any,
     },
+
     // forgot-password
     {
       path: "/forgot-password",

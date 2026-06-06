@@ -22,10 +22,41 @@ const Products: CollectionConfig = {
         return data
       },
     ],
+    beforeChange: [
+      async ({ data, req, operation, originalDoc }) => {
+        if (!data.featured) return data
+
+        // If already featured and just updating other fields, skip the check
+        if (operation === "update" && originalDoc?.featured === true) return data
+
+        const vendorId = operation === "create"
+          ? req.user?.id
+          : data.vendor ?? req.user?.id
+
+        if (!vendorId) return data
+
+        const featuredProducts = await req.payload.find({
+          collection: "products",
+          where: {
+            and: [
+              { vendor: { equals: vendorId } },
+              { featured: { equals: true } },
+            ],
+          },
+          overrideAccess: true,
+        })
+
+        if (featuredProducts.totalDocs >= 10) {
+          throw new Error("You can only have 10 featured products. Please unfeature another product first.")
+        }
+
+        return data
+      },
+    ],
     afterChange: [
       async ({ doc, operation, req }) => {
         if (operation !== "create") return doc
-        // if (!doc.featured) return doc  
+        if (!doc.featured) return doc
 
         const firstImage = doc.images?.[0]?.image
         let imageUrl: string | undefined
@@ -37,7 +68,7 @@ const Products: CollectionConfig = {
             collection: "media",
             id: firstImage,
           })
-          imageUrl = media?.url ?? undefined      
+          imageUrl = media?.url ?? undefined
         }
 
         if (!imageUrl) {
@@ -56,18 +87,6 @@ const Products: CollectionConfig = {
         return doc
       },
     ],
-    // afterChange: [
-    //   async ({ doc, operation, req }) => {
-    //     if (operation !== "create") return doc
-    //     // ── 3D generation disabled during seeding ──
-    //     // generate3DModel({
-    //     //   productId: doc.id,
-    //     //   imageUrl,
-    //     //   payload: req.payload,
-    //     // }).catch((err) => console.error("3D generation hook error:", err))
-    //     return doc
-    //   },
-    // ],
   },
   access: {
     read: () => true,

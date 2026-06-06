@@ -40,7 +40,7 @@ export default buildConfig({
 
   email: resendAdapter({
     defaultFromAddress: 'support@thedoma.shop',
-    defaultFromName: 'DOMA System',
+    defaultFromName: 'DOMA',
     apiKey: process.env.RESEND_API_KEY || '',
   }),
 

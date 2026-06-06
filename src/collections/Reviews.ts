@@ -28,7 +28,7 @@ const Reviews: CollectionConfig = {
     defaultColumns: ["product", "customer", "rating", "verifiedPurchase", "createdAt"],
   },
   access: {
-    read: () => true, 
+    read: () => true,
     create: ({ req }) => req?.user?.collection === COLLECTION_SLUGS.CUSTOMERS,
     update: ({ req }) => {
       if (isAdmin({ req })) return true
@@ -68,6 +68,23 @@ const Reviews: CollectionConfig = {
       name: "description",
       type: "textarea",
       required: true,
+    },
+    {
+      name: "images",
+      label: "Review Images",
+      type: "array",
+      maxRows: 5,
+      admin: {
+        description: "Upload up to 5 images for your review.",
+      },
+      fields: [
+        {
+          name: "image",
+          type: "upload",
+          relationTo: "media",
+          required: true,
+        },
+      ],
     },
     {
       name: "verifiedPurchase",
@@ -174,7 +191,7 @@ async function updateProductRating(payload: any, productId: string) {
     })
 
     const count = reviews.docs.length
-    const average = count > 0 
+    const average = count > 0
       ? Number((reviews.docs.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / count).toFixed(2))
       : 0
 

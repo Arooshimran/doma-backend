@@ -194,7 +194,7 @@ const Orders: CollectionConfig = {
       async ({ data, req, originalDoc }) => {
         if (!data || !req?.payload) return data
         const payload = req.payload
-        
+
         const nextStatus = data.orderStatus ?? originalDoc?.orderStatus ?? "pending"
         const prevStatus = originalDoc?.orderStatus
         const alreadyAdjusted = originalDoc?.inventoryAdjusted ?? false
@@ -220,7 +220,7 @@ const Orders: CollectionConfig = {
               },
             })
           }
-          data.inventoryAdjusted = false 
+          data.inventoryAdjusted = false
           return data
         }
 
@@ -262,139 +262,328 @@ const Orders: CollectionConfig = {
     afterChange: [
       async ({ doc, req, operation, previousDoc }) => {
         try {
-          const payload = req.payload;
-          
-          const customerId = doc.customer && typeof doc.customer === 'object' 
-            ? doc.customer.id 
-            : doc.customer;
-    
+          const payload = req.payload
+
+          const customerId = doc.customer && typeof doc.customer === 'object'
+            ? doc.customer.id
+            : doc.customer
+
           if (!customerId) {
-            console.warn("Order processed without a customer ID. Skipping email.");
-            return;
+            console.warn("Order processed without a customer ID. Skipping email.")
+            return
           }
-    
+
           const customer = await payload.findByID({
             collection: COLLECTION_SLUGS.CUSTOMERS,
             id: customerId,
-          });
-    
-          if (!customer?.email) return;
-    
+          })
+
+          if (!customer?.email) return
+
           if (operation === "create") {
-            await sendOrderConfirmationEmail(payload, doc, customer);
-          } 
-          
-          else if (operation === "update" && doc.orderStatus !== previousDoc?.orderStatus) {
-            await sendOrderStatusUpdateEmail(payload, doc, customer);
+            await sendOrderConfirmationEmail(payload, doc, customer)
+          } else if (operation === "update" && doc.orderStatus !== previousDoc?.orderStatus) {
+            await sendOrderStatusUpdateEmail(payload, doc, customer)
           }
-    
         } catch (emailError: any) {
-          console.error("Order email hook error:", emailError.message);
+          console.error("Order email hook error:", emailError.message)
         }
       },
     ],
   },
 }
 
-async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: any) {
-  const statusMessages: Record<string, string> = {
-    processing: "is now being processed and packed.",
-    shipped: "has been shipped! It's on its way to you.",
-    delivered: "has been delivered. Enjoy your DOMA products!",
-    canceled: "has been canceled as requested.",
-  };
+// ─── STATUS UPDATE EMAIL ───────────────────────────────────────────────────────
 
-  const message = statusMessages[order.orderStatus] || `status has been updated to ${order.orderStatus}.`;
+async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: any) {
+  const statusConfig: Record<string, { label: string; color: string; accentColor: string; message: string }> = {
+    processing: {
+      label: "Processing",
+      color: "#d97706",
+      accentColor: "#f59e0b",
+      message: "is now being processed and packed.",
+    },
+    shipped: {
+      label: "Shipped",
+      color: "#2563eb",
+      accentColor: "#3b82f6",
+      message: "has been shipped! It's on its way to you.",
+    },
+    delivered: {
+      label: "Delivered",
+      color: "#16a34a",
+      accentColor: "#22c55e",
+      message: "has been delivered. Enjoy your DOMA products!",
+    },
+    canceled: {
+      label: "Canceled",
+      color: "#dc2626",
+      accentColor: "#ef4444",
+      message: "has been canceled as requested.",
+    },
+  }
+
+  const config = statusConfig[order.orderStatus] ?? {
+    label: order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1),
+    color: "#374151",
+    accentColor: "#6b7280",
+    message: `status has been updated to ${order.orderStatus}.`,
+  }
 
   try {
     await payload.sendEmail({
       to: customer.email,
-      subject: `Update on Order #${order.orderNumber}: ${order.orderStatus.toUpperCase()}`,
+      subject: `Order #${order.orderNumber} — ${config.label}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee;">
-          <div style="background: #FF9800; color: white; padding: 20px; text-align: center;">
-            <h1>Order Update</h1>
-          </div>
-          <div style="padding: 30px; background: #ffffff;">
-            <h2>Good news, ${customer.Name || 'Customer'}!</h2>
-            <p>Your order <strong>#${order.orderNumber}</strong> ${message}</p>
-            
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0; text-align: center;">
-              <p style="margin: 0; color: #666;">Current Status:</p>
-              <h3 style="margin: 5px 0; color: #1B5E20; text-transform: uppercase;">${order.orderStatus}</h3>
-            </div>
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+          <title>Order Update</title>
+        </head>
+        <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 0;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
 
-            <p><strong>Order Details:</strong><br />
-            Total: Rs. ${order.total}<br />
-            Items: ${order.items.length} items</p>
+                  <!-- Header -->
+                  <tr>
+                    <td style="background-color:#1A3126;padding:32px 40px;text-align:center;">
+                      <img src="https://res.cloudinary.com/dnokhszdv/image/upload/v1780759093/payload-media/file_yylpmi.png" alt="DOMA" width="140" style="display:block;margin:0 auto;" />
+                    </td>
+                  </tr>
 
-            <p style="text-align: center; margin-top: 30px;">
-              <a href="https://doma-app.com/track/${order.orderNumber}" style="background: #1B5E20; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                View Order Progress
-              </a>
-            </p>
-          </div>
-          <div style="background: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            Questions? Contact our support at support@doma.com
-          </div>
-        </div>
+                  <!-- Accent bar -->
+                  <tr>
+                    <td style="background:${config.accentColor};height:4px;"></td>
+                  </tr>
+
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding:40px 40px 24px;">
+                      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:${config.color};text-transform:uppercase;letter-spacing:0.8px;">Order Update</p>
+                      <h1 style="margin:0 0 24px;font-size:28px;font-weight:700;color:#0a0a0a;line-height:1.2;">Your order is ${config.label.toLowerCase()}!</h1>
+                      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Hi <strong>${customer.Name || 'Customer'}</strong>,</p>
+                      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+                        Your order <strong>#${order.orderNumber}</strong> ${config.message}
+                      </p>
+
+                      <!-- Status card -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+                        <tr>
+                          <td style="padding:20px 24px;">
+                            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;">Order Details</p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">Order Number</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">#${order.orderNumber}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;">Items</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">${order.items.length} item${order.items.length !== 1 ? 's' : ''}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;">Total</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">Rs. ${order.total}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;">Status</td>
+                                <td style="padding:6px 0;font-size:14px;font-weight:600;color:${config.color};">${config.label}</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- CTA -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin:28px 0;">
+                        <tr>
+                          <td align="center">
+                            <a href="https://www.thedoma.shop/profile"
+                              style="display:inline-block;background:#0a0a0a;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;letter-spacing:0.2px;">
+                              View Order Progress →
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0;font-size:15px;color:#374151;line-height:1.6;">
+                        Thank you for shopping with DOMA.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
+                      <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;line-height:1.6;">
+                        This email was sent by DOMA Marketplace · <a href="https://www.thedoma.shop" style="color:#9ca3af;">thedoma.shop</a><br/>
+                        Questions? Contact us at <a href="mailto:support@thedoma.shop" style="color:#9ca3af;">support@thedoma.shop</a>
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
-    });
-    console.log(`Status update email (${order.orderStatus}) sent to ${customer.email}`);
+      text: `Order #${order.orderNumber} — ${config.label}\n\nHi ${customer.Name || 'Customer'},\n\nYour order #${order.orderNumber} ${config.message}\n\nTotal: Rs. ${order.total}\nItems: ${order.items.length}\nStatus: ${config.label}\n\nView your order: https://www.thedoma.shop/profile\n\nDOMA Marketplace · thedoma.shop`,
+    })
+    console.log(`Status update email (${order.orderStatus}) sent to ${customer.email}`)
   } catch (error: any) {
-    console.error("Failed to send status update email:", error.message);
+    console.error("Failed to send status update email:", error.message)
   }
 }
 
-// EMAIL NOTIFICATION FUNCTION 
+// ─── ORDER CONFIRMATION EMAIL ──────────────────────────────────────────────────
+
 async function sendOrderConfirmationEmail(payload: any, order: any, customer: any) {
   try {
     await payload.sendEmail({
       to: customer.email,
       subject: `Order Confirmed: #${order.orderNumber}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #eee;">
-          <div style="background: #1B5E20; color: white; padding: 20px; text-align: center;">
-            <h1>Order Confirmed!</h1>
-          </div>
-          <div style="padding: 30px; background: #ffffff;">
-            <h2>Thank you for your order, ${customer.Name || 'Customer'}!</h2>
-            <p>We've received your order <strong>#${order.orderNumber}</strong> and it is now being processed.</p>
-            
-            <div style="background: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-              <h3 style="border-bottom: 1px solid #ddd; padding-bottom: 10px;">Order Summary</h3>
-              <table style="width: 100%; border-collapse: collapse;">
-                ${order.items.map((item: any) => `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8" />
+          <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+          <title>Order Confirmed</title>
+        </head>
+        <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+          <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 0;">
+            <tr>
+              <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+                  <!-- Header -->
                   <tr>
-                    <td style="padding: 10px 0;">${item.productTitle} (x${item.quantity})</td>
-                    <td style="text-align: right; padding: 10px 0;">Rs. ${item.total}</td>
+                    <td style="background-color:#1A3126;padding:32px 40px;text-align:center;">
+                      <img src="https://res.cloudinary.com/dnokhszdv/image/upload/v1780759093/payload-media/file_yylpmi.png" alt="DOMA" width="140" style="display:block;margin:0 auto;" />
+                    </td>
                   </tr>
-                `).join('')}
-                <tr style="border-top: 2px solid #ddd; font-weight: bold;">
-                  <td style="padding: 10px 0;">Total</td>
-                  <td style="text-align: right; padding: 10px 0;">Rs. ${order.total}</td>
-                </tr>
-              </table>
-            </div>
 
-            <p><strong>Shipping to:</strong><br />
-            ${order.shippingAddress.street}, ${order.shippingAddress.city}<br />
-            ${order.shippingAddress.country}</p>
+                  <!-- Green accent bar -->
+                  <tr>
+                    <td style="background:#16a34a;height:4px;"></td>
+                  </tr>
 
-            <p>We'll send you another update once your package is on its way!</p>
-            
-            <p style="text-align: center; margin-top: 30px;">
-              <a href="https://doma-app.com/orders" style="background: #FF9800; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">
-                Track My Order
-              </a>
-            </p>
-          </div>
-          <div style="background: #f1f1f1; padding: 15px; text-align: center; font-size: 12px; color: #666;">
-            &copy; ${new Date().getFullYear()} DOMA - Your AI Design Partner
-          </div>
-        </div>
+                  <!-- Body -->
+                  <tr>
+                    <td style="padding:40px 40px 24px;">
+                      <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#16a34a;text-transform:uppercase;letter-spacing:0.8px;">Order Confirmed</p>
+                      <h1 style="margin:0 0 24px;font-size:28px;font-weight:700;color:#0a0a0a;line-height:1.2;">Thank you for your order!</h1>
+                      <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Hi <strong>${customer.Name || 'Customer'}</strong>,</p>
+                      <p style="margin:0 0 24px;font-size:16px;color:#374151;line-height:1.6;">
+                        We've received your order <strong>#${order.orderNumber}</strong> and it is now being processed. We'll send you another update once your package is on its way.
+                      </p>
+
+                      <!-- Order summary card -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:20px;">
+                        <tr>
+                          <td style="padding:20px 24px;">
+                            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;">Order Summary</p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              ${order.items.map((item: any) => `
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#374151;">${item.productTitle} <span style="color:#9ca3af;">×${item.quantity}</span></td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;text-align:right;">Rs. ${item.total}</td>
+                              </tr>`).join('')}
+                              <tr>
+                                <td colspan="2" style="padding:12px 0 0;border-top:1px solid #e5e7eb;"></td>
+                              </tr>
+                              <tr>
+                                <td style="padding:4px 0;font-size:14px;color:#6b7280;">Subtotal</td>
+                                <td style="padding:4px 0;font-size:14px;color:#374151;text-align:right;">Rs. ${order.subtotal}</td>
+                              </tr>
+                              ${order.shippingCost ? `
+                              <tr>
+                                <td style="padding:4px 0;font-size:14px;color:#6b7280;">Shipping</td>
+                                <td style="padding:4px 0;font-size:14px;color:#374151;text-align:right;">Rs. ${order.shippingCost}</td>
+                              </tr>` : ''}
+                              ${order.tax ? `
+                              <tr>
+                                <td style="padding:4px 0;font-size:14px;color:#6b7280;">Tax</td>
+                                <td style="padding:4px 0;font-size:14px;color:#374151;text-align:right;">Rs. ${order.tax}</td>
+                              </tr>` : ''}
+                              <tr>
+                                <td style="padding:8px 0 0;font-size:15px;font-weight:700;color:#0a0a0a;">Total</td>
+                                <td style="padding:8px 0 0;font-size:15px;font-weight:700;color:#0a0a0a;text-align:right;">Rs. ${order.total}</td>
+                              </tr>
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- Shipping address card -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:28px;">
+                        <tr>
+                          <td style="padding:20px 24px;">
+                            <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;">Shipping To</p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;width:140px;">Address</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">${order.shippingAddress.street}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;">City</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">${order.shippingAddress.city}</td>
+                              </tr>
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;">Country</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">${order.shippingAddress.country}</td>
+                              </tr>
+                              ${order.shippingAddress.phone ? `
+                              <tr>
+                                <td style="padding:6px 0;font-size:14px;color:#6b7280;">Phone</td>
+                                <td style="padding:6px 0;font-size:14px;color:#0a0a0a;font-weight:500;">${order.shippingAddress.phone}</td>
+                              </tr>` : ''}
+                            </table>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <!-- CTA -->
+                      <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                        <tr>
+                          <td align="center">
+                            <a href="https://www.thedoma.shop/profile"
+                              style="display:inline-block;background:#0a0a0a;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:8px;text-decoration:none;letter-spacing:0.2px;">
+                              Track My Order →
+                            </a>
+                          </td>
+                        </tr>
+                      </table>
+
+                      <p style="margin:0;font-size:15px;color:#374151;line-height:1.6;">
+                        Welcome to DOMA. We're glad to have you.
+                      </p>
+                    </td>
+                  </tr>
+
+                  <!-- Footer -->
+                  <tr>
+                    <td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
+                      <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;line-height:1.6;">
+                        &copy; ${new Date().getFullYear()} DOMA Marketplace · <a href="https://www.thedoma.shop" style="color:#9ca3af;">thedoma.shop</a><br/>
+                        Questions? Contact us at <a href="mailto:support@thedoma.shop" style="color:#9ca3af;">support@thedoma.shop</a>
+                      </p>
+                    </td>
+                  </tr>
+
+                </table>
+              </td>
+            </tr>
+          </table>
+        </body>
+        </html>
       `,
-      text: `Order Confirmed: #${order.orderNumber}. Thank you for your purchase of Rs. ${order.total}.`
+      text: `Order Confirmed: #${order.orderNumber}\n\nHi ${customer.Name || 'Customer'},\n\nWe've received your order #${order.orderNumber}.\n\nItems:\n${order.items.map((item: any) => `- ${item.productTitle} ×${item.quantity}: Rs. ${item.total}`).join('\n')}\n\nTotal: Rs. ${order.total}\n\nShipping to: ${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.country}\n\nTrack your order: https://www.thedoma.shop/profile\n\nDOMA Marketplace · thedoma.shop`,
     })
     console.log(`Order confirmation sent to ${customer.email}`)
   } catch (error: any) {
