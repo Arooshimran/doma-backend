@@ -350,7 +350,7 @@ async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: an
 
                   <!-- Header -->
                   <tr>
-                    <td style="background-color:#1A3126;padding:32px 40px;text-align:center;">
+<td style="background-color: #1A3126; background-image: linear-gradient(#1A3126, #1A3126); padding: 32px 40px; text-align: center;">
                       <img src="https://res.cloudinary.com/dnokhszdv/image/upload/v1780759093/payload-media/file_yylpmi.png" alt="DOMA" width="140" style="display:block;margin:0 auto;" />
                     </td>
                   </tr>
@@ -463,7 +463,7 @@ async function sendOrderConfirmationEmail(payload: any, order: any, customer: an
 
                   <!-- Header -->
                   <tr>
-                    <td style="background-color:#1A3126;padding:32px 40px;text-align:center;">
+<td style="background-color: #1A3126; background-image: linear-gradient(#1A3126, #1A3126); padding: 32px 40px; text-align: center;">
                       <img src="https://res.cloudinary.com/dnokhszdv/image/upload/v1780759093/payload-media/file_yylpmi.png" alt="DOMA" width="140" style="display:block;margin:0 auto;" />
                     </td>
                   </tr>
