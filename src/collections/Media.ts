@@ -65,6 +65,7 @@ const Media: CollectionConfig = {
             'image/png',
             'image/webp',
             'image/avif',
+            'model/gltf-binary',
           ]
 
           if (

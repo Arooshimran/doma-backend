@@ -5,7 +5,6 @@ function applyCloudinaryBackgroundRemoval(imageUrl: string): string {
     console.warn('Image is not a Cloudinary URL — skipping background removal')
     return imageUrl
   }
-
   return imageUrl.replace('/upload/', '/upload/e_background_removal/')
 }
 
@@ -47,7 +46,7 @@ export async function generate3DModel({
         product_id: productId,
         password: MODAL_PASSWORD,
       }),
-      signal: AbortSignal.timeout(3600000), 
+      signal: AbortSignal.timeout(3600000),
     })
 
     if (!response.ok) {
@@ -71,6 +70,18 @@ export async function generate3DModel({
     })
 
     console.log(`3D model saved for product ${productId}: ${result.glb_url}`)
+
+    // Trigger compression as isolated HTTP request
+    fetch(`${process.env.NEXT_PUBLIC_SERVER_URL}/api/compress-3d`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        productId,
+        glbUrl: result.glb_url,
+        secret: process.env.COMPRESSION_SECRET,
+      }),
+    }).catch((err) => console.error('[compress] Failed to trigger compression route:', err))
+
   } catch (error: any) {
     console.error(`3D generation failed for product ${productId}:`, error.message)
     console.error('Fetch error cause:', error.cause)
