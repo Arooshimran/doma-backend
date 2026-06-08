@@ -67,22 +67,58 @@ export async function generate3DModel({
       data: { model3dStatus: 'processing' },
     })
 
-    const response = await fetch(MODAL_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image_url: cleanedImageUrl,
-        product_id: productId,
-        password: MODAL_PASSWORD,
-      }),
-      signal: AbortSignal.timeout(3600000),
-    })
+    const MAX_RETRIES = 4
+    const RETRY_DELAYS_MS = [30000, 60000, 120000, 180000]
+    let response: Response | null = null
 
-    if (!response.ok) {
-      throw new Error(`Modal returned ${response.status}: ${await response.text()}`)
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 3600000)
+        try {
+          response = await fetch(MODAL_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: cleanedImageUrl,
+              product_id: productId,
+              password: MODAL_PASSWORD,
+            }),
+            signal: controller.signal,
+          })
+        } finally {
+          clearTimeout(timeoutId)
+        }
+
+        if (response.status === 408) {
+          const text = await response.text()
+          console.warn(`Modal 408 on attempt ${attempt}/${MAX_RETRIES}: ${text}`)
+          if (attempt < MAX_RETRIES) {
+            const delay = RETRY_DELAYS_MS[attempt - 1]
+            console.log(`Retrying in ${delay / 1000}s...`)
+            await new Promise(res => setTimeout(res, delay))
+            response = null
+            continue
+          }
+          throw new Error(`Modal returned 408: ${text}`)
+        }
+
+        break
+      } catch (fetchErr: any) {
+        if (fetchErr.message?.startsWith('Modal returned 408')) throw fetchErr
+        console.warn(`Modal fetch error on attempt ${attempt}/${MAX_RETRIES}: ${fetchErr.message}`)
+        if (attempt >= MAX_RETRIES) throw fetchErr
+        const delay = RETRY_DELAYS_MS[attempt - 1]
+        console.log(`Retrying in ${delay / 1000}s...`)
+        await new Promise(res => setTimeout(res, delay))
+      }
     }
 
-    const result = await response.json()
+    if (!response!.ok) {
+      throw new Error(`Modal returned ${response!.status}: ${await response!.text()}`)
+    }
+
+    const result = await response!.json()
 
     if (!result.success) {
       throw new Error(result.error || 'Modal returned success: false')
