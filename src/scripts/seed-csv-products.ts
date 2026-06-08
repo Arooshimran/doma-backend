@@ -1,18 +1,28 @@
 /**
- * Doma Backend — CSV Furniture Seed Script (Dining & Office)
+ * Doma Backend — CSV Furniture Seed Script (Lamps, Mirrors & Tables)
  *
- * Seeds products from a CSV file (Amazon furniture dataset format).
+ * Seeds products from the combined-products CSV.
  * Downloads product images from URLs and uploads them to Payload media.
+ *
+ * CSV columns expected:
+ *   title, categories, primary_image, extra_images, description, price
+ *
+ * Category routing:
+ *   table lamp      → bedroom
+ *   floor lamp      → living-room
+ *   full length mirror → bedroom
+ *   corner/side table  → living-room
+ *   center/coffee table → living-room
  *
  * Usage:
  *   npx payload run src/scripts/seed-csv-products.ts
  *
  * Env vars (all optional):
  *   CSV_PATH               — absolute path to CSV file
- *                            (default: src/scripts/furniture_amazon_dataset_sample_copy.csv)
+ *                            (default: src/scripts/combined-products.csv)
  *   TARGET_CATEGORIES      — comma-separated slugs to seed
- *                            (default: "dining,office")
- *   MAX_IMAGES_PER_PRODUCT — images to download per product, min 2 (default: 2)
+ *                            (default: "bedroom,living-room")
+ *   MAX_IMAGES_PER_PRODUCT — images to download per product, min 1 (default: 2)
  *   MAX_PRODUCTS_TOTAL     — hard cap on total products created (default: 100)
  */
 import dotenv from "dotenv"
@@ -32,14 +42,14 @@ import { parse } from "csv-parse/sync"
 
 const CSV_PATH =
   process.env.CSV_PATH ||
-  path.join(process.cwd(), "src", "scripts", "furniture_amazon_dataset_sample_copy.csv")
+  path.join(process.cwd(), "src", "scripts", "combined-products.csv")
 
-const TARGET_CATEGORY_SLUGS = (process.env.TARGET_CATEGORIES || "dining,office")
+const TARGET_CATEGORY_SLUGS = (process.env.TARGET_CATEGORIES || "bedroom,living-room")
   .split(",")
   .map((s) => s.trim().toLowerCase())
 
 const MAX_IMAGES_PER_PRODUCT = Math.max(
-  2,
+  1,
   parseInt(process.env.MAX_IMAGES_PER_PRODUCT || "2", 10)
 )
 
@@ -49,27 +59,36 @@ const TEMP_DIR = path.join(process.cwd(), ".tmp-csv-seed-images")
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CATEGORY KEYWORD MAP
-// Maps your Payload category slugs → keywords to match against CSV categories
-// Add more entries here if you add new category slugs to your DB.
+// Maps CSV category strings → Payload category slugs
+//
+// The CSV uses comma-separated plain strings in the `categories` column, e.g.:
+//   "table lamp, lighting"
+//   "floor lamp, lighting"
+//   "full length mirror, mirrors"
+//   "corner table, side table"
+//   "center table, coffee table"
 // ─────────────────────────────────────────────────────────────────────────────
 
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
+  // ── Your target categories ──────────────────────────────────────────────
+  bedroom: ["table lamp", "full length mirror"],
+  "living-room": ["floor lamp", "corner table", "side table", "center table", "coffee table"],
+
+  // ── Additional slugs (kept for future use / other scripts) ──────────────
   dining: ["dining", "bar stool", "barstool", "kitchen chair"],
   office: ["office", "desk", "workstation", "bookcase", "home office"],
   chair: ["chair", "armchair", "recliner", "ottoman", "stool", "rocker"],
   sofa: ["sofa", "couch"],
   loveseat: ["loveseat"],
   sectional: ["sectional"],
-  "living-room": ["living room", "lounge"],
-  bedroom: ["bed", "nightstand", "dresser", "wardrobe"],
   table: ["coffee table", "side table", "end table", "accent table", "dining table"],
-  storage: ["storage", "shelf", "shelves", "cabinet", "bookcase"],
+  storage: ["storage", "shelf", "shelves", "cabinet"],
   home: ["home decor", "accent", "decor"],
-  furniture: [], // catch-all — never matched by keywords, used as fallback
+  furniture: [], // catch-all — never matched by keywords
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SEED VENDORS (same as existing seed script — reused by slug/email)
+// SEED VENDORS
 // ─────────────────────────────────────────────────────────────────────────────
 
 const SEED_VENDORS = [
@@ -97,34 +116,53 @@ function slugify(text: string): string {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 96) // keep slugs sane length
+    .slice(0, 96)
 }
 
-/** Parse a Python-style list string: "['a', 'b']" → ["a", "b"] */
-function parsePythonList(raw: string): string[] {
+/**
+ * Parse the CSV `categories` column.
+ * The column is a plain comma-separated string, e.g. "table lamp, lighting".
+ * No Python-list brackets — just split on comma.
+ */
+function parseCsvCategories(raw: string): string[] {
   if (!raw) return []
-  try {
-    // Replace Python single-quotes with double-quotes, then JSON parse
-    const jsonStr = raw
-      .trim()
-      .replace(/'/g, '"')
-    return JSON.parse(jsonStr)
-  } catch {
-    // Fallback: strip brackets and split on comma
-    return raw
-      .replace(/^\[|\]$/g, "")
-      .split(",")
-      .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
-      .filter(Boolean)
-  }
+  return raw
+    .split(",")
+    .map((s) => s.trim().toLowerCase())
+    .filter(Boolean)
 }
 
-/** Resolve which category slug this CSV row belongs to */
-function resolveCategorySlugFromCsvCategories(
-  csvCats: string[],
+/**
+ * Parse the CSV `extra_images` column.
+ * May be empty/NaN, a single URL, or a Python-style list string.
+ */
+function parseExtraImages(raw: string | undefined): string[] {
+  if (!raw || raw.trim() === "" || raw.trim().toLowerCase() === "nan") return []
+
+  // Python-style list: ['url1', 'url2']
+  if (raw.trim().startsWith("[")) {
+    try {
+      const jsonStr = raw.trim().replace(/'/g, '"')
+      return JSON.parse(jsonStr)
+    } catch {
+      return raw
+        .replace(/^\[|\]$/g, "")
+        .split(",")
+        .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
+        .filter(Boolean)
+    }
+  }
+
+  // Single URL or whitespace-separated list
+  return raw.split(/\s+/).map((s) => s.trim()).filter((s) => s.startsWith("http"))
+}
+
+/** Resolve which Payload category slug this CSV row belongs to */
+function resolveCategorySlug(
+  csvCategories: string[],
   targetSlugs: string[]
 ): string | null {
-  const joined = csvCats.join(" ").toLowerCase()
+  const joined = csvCategories.join(" ")
 
   for (const slug of targetSlugs) {
     const keywords = CATEGORY_KEYWORDS[slug] ?? []
@@ -135,17 +173,21 @@ function resolveCategorySlugFromCsvCategories(
   return null
 }
 
-/** Parse a USD price string like "$140.00" → number in PKR (approximate) */
+/**
+ * Parse a USD price string like "$140.00" → PKR number.
+ * Conversion: 1 USD ≈ 278 PKR, rounded to nearest 100.
+ * Falls back to a random realistic PKR price if unparseable.
+ */
 function parsePrice(raw: string | undefined): number {
-  if (!raw) return Math.floor(Math.random() * 335_000) + 15_000
+  if (!raw || raw.trim() === "" || raw.trim().toLowerCase() === "nan") {
+    return Math.floor(Math.random() * 335_000) + 15_000
+  }
   const usd = parseFloat(raw.replace(/[^0-9.]/g, ""))
   if (isNaN(usd)) return Math.floor(Math.random() * 335_000) + 15_000
-  // Rough USD → PKR conversion (1 USD ≈ 278 PKR as of early 2024)
-  // Round to nearest 100 for clean pricing
   return Math.round((usd * 278) / 100) * 100
 }
 
-/** Download a URL to a temp file. Returns the local path or null on failure. */
+/** Download a URL to a temp file. Returns true on success. */
 async function downloadImage(url: string, destPath: string): Promise<boolean> {
   return new Promise((resolve) => {
     const cleanUrl = url.trim()
@@ -154,7 +196,6 @@ async function downloadImage(url: string, destPath: string): Promise<boolean> {
     const file = fs.createWriteStream(destPath)
 
     const req = lib.get(cleanUrl, { timeout: 15_000 }, (res) => {
-      // Follow one level of redirect
       if (res.statusCode === 301 || res.statusCode === 302) {
         file.close()
         fs.unlinkSync(destPath)
@@ -178,13 +219,17 @@ async function downloadImage(url: string, destPath: string): Promise<boolean> {
       file.on("error", () => { file.close(); fs.unlinkSync(destPath); resolve(false) })
     })
 
-    req.on("error", () => { file.close(); if (fs.existsSync(destPath)) fs.unlinkSync(destPath); resolve(false) })
+    req.on("error", () => {
+      file.close()
+      if (fs.existsSync(destPath)) fs.unlinkSync(destPath)
+      resolve(false)
+    })
     req.on("timeout", () => { req.destroy(); resolve(false) })
   })
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// IMAGE UPLOAD (identical logic to existing seed.ts)
+// IMAGE UPLOAD
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function uploadLocalImage(imagePath: string, altText: string): Promise<string | null> {
@@ -227,7 +272,7 @@ async function uploadLocalImage(imagePath: string, altText: string): Promise<str
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ENSURE VENDORS (reuse existing, create if missing)
+// ENSURE VENDORS
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function ensureVendors(): Promise<string[]> {
@@ -251,7 +296,8 @@ async function ensureVendors(): Promise<string[]> {
     })
 
     if (existingBySlug.totalDocs > 0 || existingByEmail.totalDocs > 0) {
-      const existing = existingBySlug.totalDocs > 0 ? existingBySlug.docs[0] : existingByEmail.docs[0]
+      const existing =
+        existingBySlug.totalDocs > 0 ? existingBySlug.docs[0] : existingByEmail.docs[0]
       vendorIds.push(existing.id as string)
       console.log(`  ↩️  Reused: ${v.storeName}`)
       continue
@@ -297,7 +343,9 @@ async function loadTargetCategories(slugs: string[]): Promise<Map<string, string
       categoryMap.set(slug, result.docs[0].id as string)
       console.log(`  ✅ Found: ${slug}`)
     } else {
-      console.warn(`  ⚠️  Not found in DB: "${slug}" — create this category in your admin panel first!`)
+      console.warn(
+        `  ⚠️  Not found in DB: "${slug}" — create this category in your admin panel first!`
+      )
     }
   }
 
@@ -341,28 +389,32 @@ async function seed() {
 
   console.log(`\n   Total CSV rows: ${rows.length}`)
 
-  // ── Filter rows for target categories ────────────────────────────────────
+  // ── Filter & match rows ───────────────────────────────────────────────────
   const matchedRows: Array<{ row: Record<string, string>; categorySlug: string }> = []
   const seenTitles = new Set<string>()
 
   for (const row of rows) {
-    const csvCats = parsePythonList(row.categories ?? "")
-    const slug = resolveCategorySlugFromCsvCategories(csvCats, TARGET_CATEGORY_SLUGS)
+    // Parse the plain comma-separated categories column
+    const csvCats = parseCsvCategories(row.categories ?? "")
+    const slug = resolveCategorySlug(csvCats, TARGET_CATEGORY_SLUGS)
     if (!slug) continue
 
-    // Skip duplicates by title
+    // Skip color-variant rows that have no real product name
     const titleKey = (row.title ?? "").toLowerCase().trim()
-    if (!titleKey || seenTitles.has(titleKey)) continue
+    if (!titleKey || titleKey.startsWith("color:")) {
+      console.log(`  ⏭️  Skipping color variant row: "${row.title}"`)
+      continue
+    }
+    if (seenTitles.has(titleKey)) continue
     seenTitles.add(titleKey)
 
-    // Skip products with no images at all
-    const imageUrls = parsePythonList(row.images ?? "")
-    if (!row.primary_image && imageUrls.length === 0) continue
+    // Must have at least a primary image
+    if (!row.primary_image || !row.primary_image.trim().startsWith("http")) continue
 
     matchedRows.push({ row, categorySlug: slug })
   }
 
-  console.log(`   Matched rows (unique, has images): ${matchedRows.length}`)
+  console.log(`   Matched rows (unique, has image): ${matchedRows.length}`)
 
   if (matchedRows.length === 0) {
     console.error("\n❌ No matching products found. Check TARGET_CATEGORIES and your CSV.")
@@ -391,7 +443,15 @@ async function seed() {
   for (let i = 0; i < capped.length; i++) {
     const { row, categorySlug } = capped[i]
 
-    const title = (row.title ?? "Unknown Product").trim().split(",")[0].trim().slice(0, 60)
+    // ── Field mapping ──────────────────────────────────────────────────────
+    // CSV column  → script variable
+    // title       → title / slug
+    // description → Description (falls back to generic)
+    // price       → pricing.price  (USD string → PKR number)
+    // primary_image → first image URL
+    // extra_images  → additional image URLs (may be empty)
+
+    const title = (row.title ?? "Unknown Product").trim().slice(0, 60)
     const slug = slugify(title)
 
     // Check slug uniqueness
@@ -402,66 +462,74 @@ async function seed() {
     })
 
     if (existing.totalDocs > 0) {
-      console.log(`  ⏭️  Skipping "${title.slice(0, 60)}…" — slug exists`)
+      console.log(`  ⏭️  Skipping "${title}" — slug exists`)
       skipCount++
       continue
     }
 
-    // Collect image URLs (primary first, then extras)
-    const extraUrls = parsePythonList(row.images ?? "")
+    // ── Collect image URLs ─────────────────────────────────────────────────
+    // primary_image is a single URL; extra_images may be empty or a list
+    const extraUrls = parseExtraImages(row.extra_images)
     const allUrls = [
-      ...(row.primary_image ? [row.primary_image.trim()] : []),
-      ...extraUrls.map((u) => u.trim()),
+      row.primary_image?.trim(),
+      ...extraUrls,
     ]
-      .filter((u) => u.startsWith("http"))
-      // Deduplicate
-      .filter((u, idx, arr) => arr.indexOf(u) === idx)
+      .filter((u): u is string => !!u && u.startsWith("http"))
+      .filter((u, idx, arr) => arr.indexOf(u) === idx) // deduplicate
       .slice(0, MAX_IMAGES_PER_PRODUCT)
 
-    if (allUrls.length < 2) {
-      console.log(`  ⏭️  Skipping "${title.slice(0, 60)}…" — fewer than 2 image URLs`)
+    if (allUrls.length === 0) {
+      console.log(`  ⏭️  Skipping "${title}" — no valid image URLs`)
       skipCount++
       continue
     }
 
-    // Download images to temp
+    // ── Download images ────────────────────────────────────────────────────
     const localPaths: string[] = []
     for (let j = 0; j < allUrls.length; j++) {
-      const ext = path.extname(new URL(allUrls[j]).pathname) || ".jpg"
+      let ext: string
+      try {
+        ext = path.extname(new URL(allUrls[j]).pathname) || ".jpg"
+        // Strip query params from extension (e.g. ".jpg?w=800" → ".jpg")
+        if (ext.includes("?")) ext = ext.split("?")[0]
+        if (![".jpg", ".jpeg", ".png", ".webp"].includes(ext)) ext = ".jpg"
+      } catch {
+        ext = ".jpg"
+      }
+
       const dest = path.join(TEMP_DIR, `${slug}-${j}${ext}`)
       const ok = await downloadImage(allUrls[j], dest)
       if (ok) localPaths.push(dest)
     }
 
-    if (localPaths.length < 2) {
-      console.log(`  ⚠️  Skipping "${title.slice(0, 60)}…" — only ${localPaths.length} image(s) downloaded`)
+    if (localPaths.length === 0) {
+      console.log(`  ⚠️  Skipping "${title}" — no images downloaded`)
       skipCount++
-      // Clean up any partial downloads
-      localPaths.forEach((p) => fs.existsSync(p) && fs.unlinkSync(p))
       continue
     }
 
-    // Upload to Payload media
+    // ── Upload to Payload media ────────────────────────────────────────────
     const mediaIds: string[] = []
     for (const lp of localPaths) {
       const id = await uploadLocalImage(lp, title)
       if (id) mediaIds.push(id)
-      fs.existsSync(lp) && fs.unlinkSync(lp) // clean up immediately
+      if (fs.existsSync(lp)) fs.unlinkSync(lp)
     }
 
-    if (mediaIds.length < 2) {
-      console.log(`  ⚠️  Skipping "${title.slice(0, 60)}…" — uploads failed`)
+    if (mediaIds.length === 0) {
+      console.log(`  ⚠️  Skipping "${title}" — all uploads failed`)
       skipCount++
       continue
     }
 
-    // Build description from available fields
-    const aboutItem = (row.about_item ?? "").replace(/\s+/g, " ").trim()
-    const description = aboutItem
-      ? aboutItem.slice(0, 500)
-      : `${title} — premium quality furniture for your home.`
+    // ── Build description ──────────────────────────────────────────────────
+    // CSV `description` column maps directly to Payload `Description`
+    const description = (row.description ?? "").replace(/\s+/g, " ").trim().slice(0, 500)
+      || `${title} — premium quality for your home.`
 
+    // ── Parse price: CSV `price` (USD string) → PKR number ────────────────
     const price = parsePrice(row.price)
+
     const categoryId = categoryMap.get(categorySlug) ?? null
     const vendorId = vendorIds[i % vendorIds.length]
 
@@ -483,7 +551,7 @@ async function seed() {
         category: categoryId ?? undefined,
         vendor: vendorId,
         status: "published",
-        featured: productCount < 5,
+        featured: productCount < 0,
         model3dStatus: "none",
       },
       overrideAccess: true,
@@ -491,11 +559,11 @@ async function seed() {
 
     productCount++
     console.log(
-      `  ✅ [${productCount}] ${title.slice(0, 55)}… → ${categorySlug} — ₨${price.toLocaleString()}`
+      `  ✅ [${productCount}] ${title.slice(0, 50)} → ${categorySlug} — ₨${price.toLocaleString()}`
     )
   }
 
-  // ── Cleanup temp dir ──────────────────────────────────────────────────────
+  // ── Cleanup ───────────────────────────────────────────────────────────────
   try { fs.rmdirSync(TEMP_DIR) } catch { /* not empty or already gone */ }
 
   // ── Summary ───────────────────────────────────────────────────────────────

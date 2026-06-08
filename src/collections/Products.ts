@@ -57,6 +57,8 @@ const Products: CollectionConfig = {
       async ({ doc, operation, req }) => {
         if (operation !== "create") return doc
         if (!doc.featured) return doc
+        if (process.env.DISABLE_3D_GENERATION === "true") return doc  // ← add this line
+
 
         const firstImage = doc.images?.[0]?.image
         let imageUrl: string | undefined

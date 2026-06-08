@@ -31,10 +31,39 @@ export async function generate3DModel({
   const cleanedImageUrl = applyCloudinaryBackgroundRemoval(imageUrl)
   console.log(`   Cleaned image:  ${cleanedImageUrl}`)
 
+  // Wait for MongoDB to finish committing the document on the remote DB
+  // This is necessary in production because the afterChange hook fires
+  // before the document is fully readable on Render's remote MongoDB
+  await new Promise(res => setTimeout(res, 3000))
+
+  // Verify the product exists before proceeding
+  let productExists = false
+  for (let i = 0; i < 5; i++) {
+    try {
+      await payload.findByID({
+        collection: 'products',
+        id: productId,
+        overrideAccess: true,
+      })
+      productExists = true
+      console.log(`Product ${productId} confirmed in DB after ${i + 1} attempt(s)`)
+      break
+    } catch {
+      console.log(`Product not readable yet, retrying... (${i + 1}/5)`)
+      await new Promise(res => setTimeout(res, 2000 * (i + 1)))
+    }
+  }
+
+  if (!productExists) {
+    console.error(`Product ${productId} never became readable after retries — aborting`)
+    return
+  }
+
   try {
     await payload.update({
       collection: 'products',
       id: productId,
+      overrideAccess: true,
       data: { model3dStatus: 'processing' },
     })
 
@@ -62,6 +91,7 @@ export async function generate3DModel({
     await payload.update({
       collection: 'products',
       id: productId,
+      overrideAccess: true,
       data: {
         model3dUrl: result.glb_url,
         model3dStatus: 'ready',
@@ -90,6 +120,7 @@ export async function generate3DModel({
     await payload.update({
       collection: 'products',
       id: productId,
+      overrideAccess: true,
       data: { model3dStatus: 'failed' },
     }).catch(() => {})
   }

@@ -1,16 +1,18 @@
 /**
- * Doma Backend — Fix Product Descriptions (CSV-based, no API)
+ * Doma Backend — Fix Descriptions for Lamps, Mirrors & Tables
  *
- * Finds all products in your dining and office categories,
- * matches them to CSV rows by title, and builds clean descriptions
- * from available fields (brand, material, color, style, about_item).
+ * Updates descriptions for already-seeded products in bedroom and living-room
+ * categories, replacing the "— from Anthropologie" / "— modern design from Article"
+ * placeholder text with proper descriptions based on product type.
  *
  * Usage:
- *   node --env-file=.env --import tsx src/scripts/fix-descriptions.ts
+ *   npm run fix-descriptions
+ *
+ * Add to package.json scripts:
+ *   "fix-descriptions": "tsx --env-file=.env src/scripts/fix-descriptions-lamps.ts"
  *
  * Env vars (optional):
- *   CSV_PATH           — path to CSV file
- *   TARGET_CATEGORIES  — comma-separated slugs (default: "dining,office")
+ *   TARGET_CATEGORIES — comma-separated slugs (default: "bedroom,living-room")
  */
 import dotenv from "dotenv"
 import * as path from "path"
@@ -18,108 +20,62 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") })
 
 import payload from "payload"
 import config from "@payload-config"
-import * as fs from "fs"
-import { parse } from "csv-parse/sync"
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
-const CSV_PATH =
-  process.env.CSV_PATH ||
-  path.join(process.cwd(), "src", "scripts", "furniture_amazon_dataset_sample_copy.csv")
-
-const TARGET_CATEGORY_SLUGS = (process.env.TARGET_CATEGORIES || "dining,office")
+const TARGET_CATEGORY_SLUGS = (process.env.TARGET_CATEGORIES || "bedroom,living-room")
   .split(",")
   .map((s) => s.trim().toLowerCase())
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
+// DESCRIPTION GENERATOR
+// Builds a clean description based on the product title keywords
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Parse a Python-style list string or dict list into plain text */
-function parsePythonList(raw: string): string[] {
-  if (!raw) return []
-  try {
-    const jsonStr = raw.trim().replace(/'/g, '"')
-    const parsed = JSON.parse(jsonStr)
-    if (Array.isArray(parsed)) return parsed.map((s: any) => String(s).trim()).filter(Boolean)
-    return []
-  } catch {
-    return raw
-      .replace(/^\[|\]$/g, "")
-      .split(",")
-      .map((s) => s.trim().replace(/^['"]|['"]$/g, ""))
-      .filter(Boolean)
-  }
-}
+function buildDescription(title: string): string {
+  const t = title.toLowerCase()
 
-/** Extract bullet points from about_item field */
-function parseAboutItem(raw: string): string[] {
-  if (!raw) return []
-  const items = parsePythonList(raw)
-  if (items.length > 0) return items
+  // Extract material/style hints from title
+  const materials: string[] = []
+  if (t.includes("velvet")) materials.push("velvet")
+  if (t.includes("wood") || t.includes("wooden")) materials.push("wood")
+  if (t.includes("glass")) materials.push("glass")
+  if (t.includes("marble")) materials.push("marble")
+  if (t.includes("seagrass")) materials.push("seagrass")
+  if (t.includes("walnut")) materials.push("walnut")
+  if (t.includes("oak")) materials.push("oak")
+  if (t.includes("fabric") || t.includes("upholstered")) materials.push("fabric")
 
-  // Fallback: split on newlines or bullet markers
-  return raw
-    .split(/[\n•●▪]/)
-    .map((s) => s.replace(/【[^】]*】/g, "").trim())
-    .filter((s) => s.length > 10 && s.length < 200)
-}
+  const materialStr = materials.length > 0 ? `${materials.join(" and ")} ` : ""
 
-/** Normalize title for fuzzy matching — strips brand prefix noise */
-function normalizeTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 80)
-}
-
-/** Build a clean, human-readable description from CSV fields */
-function buildDescription(row: Record<string, string>): string {
-  const parts: string[] = []
-
-  // Line 1: Brand + clean product name + key attributes
-  const brand = (row.brand ?? "").trim()
-  const color = (row.color ?? "").trim()
-  const material = (row.material ?? "").trim()
-  const style = (row.style ?? "").trim()
-
-  const attrs = [color, material, style].filter(Boolean).join(", ")
-  const cleanTitle = (row.title ?? "")
-    .trim()
-    .split(",")[0]
-    .trim()
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-
-  if (brand && attrs) {
-    parts.push(`${cleanTitle} by ${brand}. ${attrs}.`)
-  } else if (brand) {
-    parts.push(`${cleanTitle} by ${brand}.`)
-  } else if (attrs) {
-    parts.push(`${cleanTitle}. ${attrs}.`)
-  } else {
-    parts.push(`${cleanTitle}.`)
+  if (t.includes("table lamp")) {
+    return `A beautifully crafted ${materialStr}table lamp that brings warm, ambient lighting to your bedroom or living space. Designed to complement modern and contemporary interiors with understated elegance.`
   }
 
-  // Line 2: Top 3 bullet points from about_item, cleaned up
-  const bullets = parseAboutItem(row.about_item ?? "")
-    .slice(0, 3)
-    .map((b) =>
-      b
-        .replace(/^[-–—•*]+\s*/, "")
-        .replace(/\s+/g, " ")
-        .trim()
-    )
-    .filter((b) => b.length > 10)
-
-  if (bullets.length > 0) {
-    parts.push(bullets.join(" "))
+  if (t.includes("floor lamp")) {
+    return `A striking ${materialStr}floor lamp that makes a bold statement in any living room. Built for both function and style, it casts a warm, inviting glow that transforms the atmosphere of your space.`
   }
 
-  return parts.join(" ").slice(0, 500)
+  if (t.includes("floor mirror")) {
+    return `A full-length ${materialStr}floor mirror that adds depth, light, and sophistication to any room. Perfect for bedrooms and dressing areas, it combines practicality with refined aesthetic appeal.`
+  }
+
+  if (t.includes("wall mirror")) {
+    return `A sleek ${materialStr}wall mirror designed to open up your space and reflect natural light. A versatile accent piece that works beautifully in bedrooms, hallways, and living areas.`
+  }
+
+  if (t.includes("coffee table") || t.includes("center table")) {
+    return `A thoughtfully designed ${materialStr}coffee table that anchors your living room with modern character. Crafted for everyday use with a refined finish that pairs effortlessly with any sofa or sectional.`
+  }
+
+  if (t.includes("side table") || t.includes("corner table")) {
+    return `A versatile ${materialStr}side table designed for both style and function. The perfect companion beside a sofa, armchair, or bed — offering a convenient surface with a clean, contemporary look.`
+  }
+
+  // Generic fallback
+  return `A premium quality ${materialStr}furniture piece designed to elevate your home with timeless style and lasting craftsmanship.`
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -137,30 +93,7 @@ async function fixDescriptions() {
     process.exit(1)
   }
 
-  // ── Load CSV ──────────────────────────────────────────────────────────────
-  if (!fs.existsSync(CSV_PATH)) {
-    console.error(`❌ CSV not found at: ${CSV_PATH}`)
-    process.exit(1)
-  }
-
-  const rawCsv = fs.readFileSync(CSV_PATH, "utf8")
-  const csvRows: Record<string, string>[] = parse(rawCsv, {
-    columns: true,
-    skip_empty_lines: true,
-    relax_quotes: true,
-    trim: true,
-  })
-
-  // Build a lookup map: normalizedTitle → row
-  const csvMap = new Map<string, Record<string, string>>()
-  for (const row of csvRows) {
-    const key = normalizeTitle(row.title ?? "")
-    if (key) csvMap.set(key, row)
-  }
-
-  console.log(`   CSV loaded: ${csvRows.length} rows, ${csvMap.size} unique titles\n`)
-
-  // ── Load target categories from DB ────────────────────────────────────────
+  // ── Load target categories ────────────────────────────────────────────────
   const categoryIds: string[] = []
 
   for (const slug of TARGET_CATEGORY_SLUGS) {
@@ -183,7 +116,7 @@ async function fixDescriptions() {
   }
 
   // ── Fetch all products in target categories ───────────────────────────────
-  console.log("\n🔍 Fetching products from DB...")
+  console.log("\n🔍 Fetching products...")
 
   const products: any[] = []
   for (const catId of categoryIds) {
@@ -191,42 +124,23 @@ async function fixDescriptions() {
       collection: "products",
       where: { category: { equals: catId } },
       limit: 200,
+      overrideAccess: true,
     })
     products.push(...result.docs)
   }
 
-  console.log(`   Found ${products.length} products to update\n`)
+  console.log(`   Found ${products.length} products\n`)
+
+  if (products.length === 0) {
+    console.error("❌ No products found in target categories.")
+    process.exit(1)
+  }
 
   // ── Update each product ───────────────────────────────────────────────────
   let updated = 0
-  let noMatch = 0
 
   for (const product of products) {
-    const productTitleNorm = normalizeTitle(product.title ?? "")
-
-    // Try exact match first
-    let csvRow = csvMap.get(productTitleNorm)
-
-    // Fallback: partial match (product title starts with CSV title or vice versa)
-    if (!csvRow) {
-      for (const [key, row] of csvMap.entries()) {
-        if (
-          productTitleNorm.startsWith(key.slice(0, 30)) ||
-          key.startsWith(productTitleNorm.slice(0, 30))
-        ) {
-          csvRow = row
-          break
-        }
-      }
-    }
-
-    if (!csvRow) {
-      console.log(`  ⚠️  No CSV match for: "${product.title?.slice(0, 60)}"`)
-      noMatch++
-      continue
-    }
-
-    const newDescription = buildDescription(csvRow)
+    const newDescription = buildDescription(product.title ?? "")
 
     await payload.update({
       collection: "products",
@@ -236,15 +150,14 @@ async function fixDescriptions() {
     })
 
     updated++
-    console.log(`  ✅ Updated: "${product.title?.slice(0, 55)}"`)
+    console.log(`  ✅ "${product.title?.slice(0, 55)}"`)
     console.log(`     → ${newDescription.slice(0, 100)}…\n`)
   }
 
   // ── Summary ───────────────────────────────────────────────────────────────
   console.log("─────────────────────────────────────────")
   console.log("🎉 Done!")
-  console.log(`   Updated  : ${updated}`)
-  console.log(`   No match : ${noMatch} (these keep their old description)`)
+  console.log(`   Descriptions updated: ${updated}`)
   console.log("─────────────────────────────────────────\n")
 
   process.exit(0)
