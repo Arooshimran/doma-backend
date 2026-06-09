@@ -1,70 +1,73 @@
-// Hugging Face CLIP zero-shot image classification — free, no billing required.
-// NOTE: api-inference.huggingface.co is DNS-blocked on Pakistani ISPs.
-// This runs fine on the production Render server (US-based) — test via the deployed URL.
-// Optionally add HF_TOKEN=hf_xxx to .env (free at huggingface.co/settings/tokens) for higher rate limits.
-const HF_CLIP_URL =
-  "https://api-inference.huggingface.co/models/openai/clip-vit-base-patch32"
+// OpenRouter.ai — free vision models, globally accessible, no billing required.
+// Sign up free at openrouter.ai → Keys → Create Key → add OPENROUTER_API_KEY to .env
+// Uses meta-llama/llama-3.2-11b-vision-instruct:free (completely free, no credits needed)
+
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 export async function validateProductImageMatch(
   imageUrl: string,
   productTitle: string,
 ): Promise<{ isValid: boolean; reason: string }> {
+  const apiKey = process.env.OPENROUTER_API_KEY
+  if (!apiKey) {
+    console.warn("[ImageValidator] No OPENROUTER_API_KEY set – skipping validation")
+    return { isValid: true, reason: "No API key configured" }
+  }
+
   try {
-    const imageRes = await fetch(imageUrl)
-    if (!imageRes.ok) return { isValid: true, reason: "Could not fetch image" }
-
-    const contentType = (imageRes.headers.get("content-type") || "image/jpeg").split(";")[0].trim()
-    const supported = ["image/jpeg", "image/png", "image/webp", "image/gif"]
-    if (!supported.includes(contentType)) return { isValid: true, reason: "Non-image type skipped" }
-
-    const imageBuffer = await imageRes.arrayBuffer()
-    const base64Image = Buffer.from(imageBuffer).toString("base64")
-
-    const headers: Record<string, string> = { "Content-Type": "application/json" }
-    const hfToken = process.env.HF_TOKEN
-    if (hfToken) headers["Authorization"] = `Bearer ${hfToken}`
-
-    const matchLabel = `a photo of a ${productTitle.toLowerCase()}`
-    const noMatchLabel = `a photo of something that is not a ${productTitle.toLowerCase()}`
-
-    const hfRes = await fetch(HF_CLIP_URL, {
+    const res = await fetch(OPENROUTER_URL, {
       method: "POST",
-      headers,
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
       body: JSON.stringify({
-        inputs: base64Image,
-        parameters: { candidate_labels: [matchLabel, noMatchLabel] },
+        model: "nex-agi/nex-n2-pro:free",
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "image_url", image_url: { url: imageUrl } },
+              {
+                type: "text",
+                text: `You are a product listing validator. Does this image show a "${productTitle}"? Synonyms are fine (e.g. sofa = couch). Reply with only YES or NO.`,
+              },
+            ],
+          },
+        ],
+        max_tokens: 500,
       }),
     })
 
-    if (hfRes.status === 503) {
-      console.warn("[HF CLIP] Model loading – skipping validation this time")
-      return { isValid: true, reason: "Validation service loading" }
-    }
-
-    if (!hfRes.ok) {
-      const errText = await hfRes.text()
-      console.warn("[HF CLIP] API error", hfRes.status, errText.slice(0, 300))
+    if (!res.ok) {
+      const errText = await res.text()
+      console.warn("[ImageValidator] API error", res.status, errText.slice(0, 300))
       return { isValid: true, reason: "Validation service unavailable" }
     }
 
-    const result = await hfRes.json()
-    console.log("[HF CLIP] Result for product:", JSON.stringify(productTitle), "→", JSON.stringify(result))
+    const data = await res.json()
+    const message = data?.choices?.[0]?.message ?? {}
 
-    if (!Array.isArray(result) || result.length === 0) {
-      return { isValid: true, reason: "No result from validation" }
-    }
+    // Extract text from all possible fields (reasoning models put answer in content after thinking)
+    const contentText: string = message?.content ?? ""
+    const reasoningText: string = message?.reasoning ?? ""
+    const reasoningDetails: string = (message?.reasoning_details ?? [])
+      .map((d: any) => d?.text ?? "").join(" ")
 
-    const topResult = result[0] as { label: string; score: number }
-    if (topResult.label === noMatchLabel && topResult.score > 0.60) {
+    const combined = `${contentText} ${reasoningText} ${reasoningDetails}`.toUpperCase()
+    console.log("[ImageValidator] Full message:", JSON.stringify(message))
+    console.log("[ImageValidator] Response for product:", JSON.stringify(productTitle), "→", combined.slice(0, 150))
+
+    if (combined.includes("NO") && !combined.includes("YES")) {
       return {
         isValid: false,
-        reason: `Image does not appear to show a ${productTitle}`,
+        reason: `Image does not match the product name "${productTitle}"`,
       }
     }
 
     return { isValid: true, reason: "Image matches product name" }
   } catch (err) {
-    console.error("[HF CLIP] validation error:", err)
+    console.error("[ImageValidator] validation error:", err)
     return { isValid: true, reason: "Validation error – skipped" }
   }
 }
