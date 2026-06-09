@@ -48,17 +48,17 @@ export async function validateProductImageMatch(
     const data = await res.json()
     const message = data?.choices?.[0]?.message ?? {}
 
-    // Extract text from all possible fields (reasoning models put answer in content after thinking)
-    const contentText: string = message?.content ?? ""
-    const reasoningText: string = message?.reasoning ?? ""
-    const reasoningDetails: string = (message?.reasoning_details ?? [])
-      .map((d: any) => d?.text ?? "").join(" ")
-
-    const combined = `${contentText} ${reasoningText} ${reasoningDetails}`.toUpperCase()
+    // Use only content for the decision — reasoning text often contains "YES/NO" which breaks matching
+    const answer: string = (message?.content ?? "").trim().toUpperCase()
     console.log("[ImageValidator] Full message:", JSON.stringify(message))
-    console.log("[ImageValidator] Response for product:", JSON.stringify(productTitle), "→", combined.slice(0, 150))
+    console.log("[ImageValidator] Response for product:", JSON.stringify(productTitle), "→", answer)
 
-    if (combined.includes("NO") && !combined.includes("YES")) {
+    if (!answer) {
+      // Model returned no content — skip validation
+      return { isValid: true, reason: "No answer from model" }
+    }
+
+    if (answer.startsWith("NO")) {
       return {
         isValid: false,
         reason: `Image does not match the product name "${productTitle}"`,
