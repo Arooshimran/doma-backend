@@ -1,6 +1,9 @@
 import type { CollectionConfig } from "payload"
 import { isAdmin, isAdminOrVendor } from "@/lib/access-helpers"
 import { generate3DModel } from "@/lib/generate3D"
+import { validateProductImageMatch } from "@/lib/image-validator"
+
+const MAX_INVENTORY_QUANTITY = 10_000
 
 const Products: CollectionConfig = {
   slug: "products",
@@ -23,6 +26,49 @@ const Products: CollectionConfig = {
       },
     ],
     beforeChange: [
+      // ── Inventory quantity cap ──────────────────────────────────────
+      async ({ data, operation }) => {
+        if (operation === "create" || data?.inventory?.quantity !== undefined) {
+          const qty = Number(data?.inventory?.quantity ?? 0)
+          if (qty > MAX_INVENTORY_QUANTITY) {
+            throw new Error(`Inventory quantity cannot exceed ${MAX_INVENTORY_QUANTITY.toLocaleString()} units per listing`)
+          }
+        }
+        return data
+      },
+
+      // ── Image-name mismatch check (CLIP) ──────────────────────────
+      async ({ data, req, operation }) => {
+        if (operation !== "create") return data
+        if (!data?.images || data.images.length === 0) return data
+        if (!data?.title) return data
+
+        const firstEntry = data.images[0]
+        const imageRef = firstEntry?.image ?? firstEntry
+        let imageUrl: string | null = null
+
+        if (typeof imageRef === "object" && imageRef !== null) {
+          imageUrl = (imageRef as any).cloudinaryUrl ?? (imageRef as any).url ?? null
+        } else if (typeof imageRef === "string") {
+          try {
+            const media = await req.payload.findByID({ collection: "media", id: imageRef, overrideAccess: true })
+            imageUrl = (media as any)?.cloudinaryUrl ?? (media as any)?.url ?? null
+          } catch { /* skip */ }
+        }
+
+        console.log("[CLIP] Image URL resolved:", imageUrl, "| Product:", data.title)
+
+        if (imageUrl) {
+          const check = await validateProductImageMatch(imageUrl, data.title)
+          if (!check.isValid) {
+            throw new Error(`Product image does not match the product name "${data.title}". ${check.reason}`)
+          }
+        }
+
+        return data
+      },
+
+      // ── Featured product limit ──────────────────────────────────────
       async ({ data, req, operation, originalDoc }) => {
         if (!data.featured) return data
 
@@ -209,6 +255,14 @@ const Products: CollectionConfig = {
           label: "Available Quantity",
           type: "number",
           defaultValue: 0,
+          min: 0,
+          max: 10000,
+          validate: (value: number | null | undefined) => {
+            if (value !== undefined && value !== null && value > 10000) {
+              return "Inventory quantity cannot exceed 10,000 units per listing"
+            }
+            return true
+          },
         },
         {
           name: "lowStockThreshold",

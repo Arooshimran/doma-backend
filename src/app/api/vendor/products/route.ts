@@ -1,6 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { getPayloadClient } from "@/lib/payload-client"
 import { buildCorsHeadersFromRequest } from "@/lib/cors-helpers"
+import { validateProductImageMatch } from "@/lib/image-validator"
+
+const MAX_INVENTORY_QUANTITY = 10_000
 
 const corsHeaders = (request?: NextRequest) =>
   buildCorsHeadersFromRequest(request, {
@@ -193,11 +196,47 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // ── Inventory quantity cap ────────────────────────────────────────
+    const requestedQty = Number(data.inventory?.quantity ?? 0)
+    if (requestedQty > MAX_INVENTORY_QUANTITY) {
+      return NextResponse.json(
+        { error: `Inventory quantity cannot exceed ${MAX_INVENTORY_QUANTITY.toLocaleString()} units per listing` },
+        { status: 400, headers }
+      )
+    }
+
     const payload = await getPayloadClient()
 
     let categoryId = null
     if (data.category) {
       categoryId = await handleCategory(payload, data.category)
+    }
+
+    // ── Image-name mismatch check (CLIP) ────────────────────────────
+    if (data.images && data.images.length > 0) {
+      const firstEntry = data.images[0]
+      const imageRef = firstEntry?.image ?? firstEntry
+      let imageUrl: string | null = null
+
+      if (typeof imageRef === "object" && imageRef !== null) {
+        imageUrl = imageRef.cloudinaryUrl ?? imageRef.url ?? null
+      } else if (typeof imageRef === "string") {
+        try {
+          const media = await payload.findByID({ collection: "media", id: imageRef, overrideAccess: true })
+          imageUrl = (media as any)?.cloudinaryUrl ?? media?.url ?? null
+        } catch { /* non-fatal */ }
+      }
+
+      console.log("[CLIP] Image URL resolved for validation:", imageUrl)
+      if (imageUrl) {
+        const check = await validateProductImageMatch(imageUrl, title)
+        if (!check.isValid) {
+          return NextResponse.json(
+            { error: `Product image does not match the product name "${title}". ${check.reason}` },
+            { status: 400, headers }
+          )
+        }
+      }
     }
 
     const productData: any = {
@@ -355,7 +394,18 @@ export async function PUT(request: NextRequest) {
     }
 
     const { id: _, ...dataToUpdate } = updateData
-    
+
+    // ── Inventory quantity cap ────────────────────────────────────────
+    if (dataToUpdate.inventory?.quantity !== undefined) {
+      const newQty = Number(dataToUpdate.inventory.quantity)
+      if (newQty > MAX_INVENTORY_QUANTITY) {
+        return NextResponse.json(
+          { error: `Inventory quantity cannot exceed ${MAX_INVENTORY_QUANTITY.toLocaleString()} units per listing` },
+          { status: 400, headers }
+        )
+      }
+    }
+
     if (dataToUpdate.category && typeof dataToUpdate.category === 'object') {
       dataToUpdate.category = dataToUpdate.category.id
     }
