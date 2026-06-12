@@ -325,13 +325,13 @@ async function sendVendorApprovalEmail(payload: any, vendor: any) {
                           <td style="padding:20px 24px;">
                             <p style="margin:0 0 6px;font-size:15px;font-weight:700;color:#1d4ed8;">✦ Free 3D Model Generation for AR</p>
                             <p style="margin:0 0 12px;font-size:14px;color:#1e40af;line-height:1.6;">
-                              Your first <strong>10 featured products</strong> qualify for <strong>free automatic 3D model generation</strong> through DOMA's AR module — letting customers visualize your furniture in their space before buying.
+                              Your first <strong>5 featured products</strong> qualify for <strong>free automatic 3D model generation</strong> through DOMA's AR module — letting customers visualize your furniture in their space before buying.
                             </p>
                             <table width="100%" cellpadding="0" cellspacing="0">
                               <tr><td style="padding:4px 0;font-size:13px;color:#1e40af;">✓&nbsp; Mark a product as <strong>Featured</strong> in your dashboard</td></tr>
                               <tr><td style="padding:4px 0;font-size:13px;color:#1e40af;">✓&nbsp; 3D model is auto-generated within 30–40 minutes</td></tr>
-                              <tr><td style="padding:4px 0;font-size:13px;color:#1e40af;">✓&nbsp; First 10 featured products are completely free</td></tr>
-                              <tr><td style="padding:4px 0;font-size:13px;color:#374151;">→&nbsp; Additional featured products beyond 10 will be charged</td></tr>
+                              <tr><td style="padding:4px 0;font-size:13px;color:#1e40af;">✓&nbsp; First 5 featured products are completely free</td></tr>
+                              <tr><td style="padding:4px 0;font-size:13px;color:#374151;">→&nbsp; Additional featured products beyond 5 will be charged</td></tr>
                             </table>
                           </td>
                         </tr>
@@ -387,7 +387,7 @@ Application Details:
 ${vendor.approvalNote ? `- Note: ${vendor.approvalNote}` : ""}
 
 FREE 3D MODEL GENERATION FOR AR:
-Your first 10 featured products qualify for free automatic 3D model generation through DOMA's AR module. Additional featured products beyond 10 will be charged.
+Your first 5 featured products qualify for free automatic 3D model generation through DOMA's AR module. Additional featured products beyond 5 will be charged.
 
 Login to your dashboard: https://www.thedoma.shop/login/vendor
 

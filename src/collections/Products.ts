@@ -92,8 +92,8 @@ const Products: CollectionConfig = {
           overrideAccess: true,
         })
 
-        if (featuredProducts.totalDocs >= 10) {
-          throw new Error("You can only have 10 featured products. Please unfeature another product first.")
+        if (featuredProducts.totalDocs >= 5) {
+          throw new Error("You can only have 5 featured products. Please unfeature another product first.")
         }
 
         return data
