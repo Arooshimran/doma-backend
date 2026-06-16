@@ -33,6 +33,18 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS ||
 export default buildConfig({
   admin: {
     user: Users.slug,
+    meta: {
+      titleSuffix: '- DOMA',        // changes "Products - Payload" to "Products - DOMA"
+      icons: [{ rel: 'icon', url: '/logo-ez-ez.png' }],  // tab icon
+      ogImage: '/doma-logo-2.png',  // optional, for social sharing
+    },
+    css: path.resolve(dirname, 'src/app/(payload)/custom.scss'),
+    components: {
+      graphics: {
+        Logo: '@/lib/logo#Logo',         // login page logo
+        Icon: '@/lib/logo#Logo',         // sidebar small icon
+      },
+    },
     importMap: {
       baseDir: path.resolve(dirname),
     },

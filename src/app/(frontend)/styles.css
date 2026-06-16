@@ -1,37 +1,38 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500&display=swap');
+
 :root {
-  --font-mono: 'Roboto Mono', monospace;
+  --green-dark: #1A3126;
+  --green-mid: #27493A;
+  --cream: #F0EBE1;
+  --terracotta: #C25A35;
+  --terracotta-hover: #A84A28;
+  --black: #0A0A0A;
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', system-ui, sans-serif;
 }
 
 * {
   box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #app {
+  height: 100%;
 }
 
 html {
   font-size: 18px;
-  line-height: 32px;
-
-  background: rgb(0, 0, 0);
   -webkit-font-smoothing: antialiased;
-}
-
-html,
-body,
-#app {
-  height: 100%;
+  background: var(--green-dark);
 }
 
 body {
-  font-family: system-ui;
+  font-family: var(--font-body);
   font-size: 18px;
-  line-height: 32px;
-
-  margin: 0;
-  color: rgb(1000, 1000, 1000);
-
-  @media (max-width: 1024px) {
-    font-size: 15px;
-    line-height: 24px;
-  }
+  line-height: 1.6;
+  color: var(--cream);
+  background: var(--green-dark);
 }
 
 img {
@@ -40,39 +41,9 @@ img {
   display: block;
 }
 
-h1 {
-  margin: 40px 0;
-  font-size: 64px;
-  line-height: 70px;
-  font-weight: bold;
-
-  @media (max-width: 1024px) {
-    margin: 24px 0;
-    font-size: 42px;
-    line-height: 42px;
-  }
-
-  @media (max-width: 768px) {
-    font-size: 38px;
-    line-height: 38px;
-  }
-
-  @media (max-width: 400px) {
-    font-size: 32px;
-    line-height: 32px;
-  }
-}
-
-p {
-  margin: 24px 0;
-
-  @media (max-width: 1024px) {
-    margin: calc(var(--base) * 0.75) 0;
-  }
-}
-
 a {
   color: currentColor;
+  transition: opacity 0.2s ease;
 
   &:focus {
     opacity: 0.8;
@@ -81,84 +52,184 @@ a {
 
   &:active {
     opacity: 0.7;
-    outline: none;
   }
 }
 
-svg {
-  vertical-align: middle;
-}
+/* ── Layout ── */
 
 .home {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
-  height: 100vh;
-  padding: 45px;
-  max-width: 1024px;
+  min-height: 100vh;
+  padding: 48px 32px;
+  max-width: 900px;
   margin: 0 auto;
-  overflow: hidden;
+  position: relative;
+}
 
-  @media (max-width: 400px) {
-    padding: 24px;
+/* subtle texture overlay */
+.home::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, rgba(39, 73, 58, 0.4) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(194, 90, 53, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── Content ── */
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-grow: 1;
+  gap: 0;
+  position: relative;
+  z-index: 1;
+  padding: 0px 0 0; 
+}
+
+.logo-wrap {
+  margin-bottom: 10px;
+}
+
+.logo-wrap img {
+  width: 180px;
+  height: auto;
+  filter: brightness(1);
+}
+
+h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 400;
+  line-height: 1.2;
+  text-align: center;
+  color: var(--cream);
+  letter-spacing: -0.01em;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  font-weight: 300;
+  color: rgba(240, 235, 225, 0.5);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+/* ── Links ── */
+
+.links {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+
+  a {
+    text-decoration: none;
+    padding: 0.6rem 1.4rem;
+    border-radius: 3px;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
   }
 
-  .content {
-    display: flex;
+  .admin {
+    color: var(--green-dark);
+    background: var(--cream);
+    border: 1px solid var(--cream);
+
+    &:hover {
+      background: var(--terracotta);
+      border-color: var(--terracotta);
+      color: #fff;
+    }
+  }
+
+  .docs {
+    color: var(--cream);
+    background: transparent;
+    border: 1px solid rgba(240, 235, 225, 0.35);
+
+    &:hover {
+      border-color: var(--cream);
+      background: rgba(240, 235, 225, 0.06);
+    }
+  }
+}
+
+/* ── Divider ── */
+
+.divider {
+  width: 40px;
+  height: 1px;
+  background: rgba(194, 90, 53, 0.5);
+  margin: 52px auto 0;
+}
+
+/* ── Footer ── */
+
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  padding-top: 32px;
+
+  @media (max-width: 600px) {
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex-grow: 1;
-
-    h1 {
-      text-align: center;
-    }
+    gap: 6px;
   }
 
-  .links {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-
-    a {
-      text-decoration: none;
-      padding: 0.25rem 0.5rem;
-      border-radius: 4px;
-    }
-
-    .admin {
-      color: rgb(0, 0, 0);
-      background: rgb(1000, 1000, 1000);
-      border: 1px solid rgb(0, 0, 0);
-    }
-
-    .docs {
-      color: rgb(1000, 1000, 1000);
-      background: rgb(0, 0, 0);
-      border: 1px solid rgb(1000, 1000, 1000);
-    }
+  p {
+    font-size: 0.8rem;
+    color: rgba(240, 235, 225, 0.35);
+    letter-spacing: 0.02em;
   }
 
-  .footer {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+  .codeLink {
+    text-decoration: none;
 
-    @media (max-width: 1024px) {
-      flex-direction: column;
-      gap: 6px;
+    code {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      background: rgba(240, 235, 225, 0.07);
+      border: 1px solid rgba(240, 235, 225, 0.12);
+      border-radius: 3px;
+      color: var(--terracotta);
+      font-family: 'Roboto Mono', monospace;
     }
 
-    p {
-      margin: 0;
+    &:hover code {
+      background: rgba(194, 90, 53, 0.12);
+      border-color: rgba(194, 90, 53, 0.3);
     }
+  }
+}
 
-    .codeLink {
-      text-decoration: none;
-      padding: 0 0.5rem;
-      background: rgb(60, 60, 60);
-      border-radius: 4px;
-    }
+/* ── Responsive ── */
+
+@media (max-width: 768px) {
+  .home {
+    padding: 36px 24px;
+  }
+
+  .logo-wrap img {
+    width: 140px;
   }
 }

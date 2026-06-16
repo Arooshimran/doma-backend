@@ -1,0 +1,173 @@
+/* ============================================
+   DOMA — Custom Payload Admin Theme
+   Paste this into src/app/(payload)/custom.scss
+   ============================================ */
+
+   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
+
+   :root {
+     --theme-bg:                  #1A3126;
+     --theme-elevation-0:         #152a20;
+     --theme-elevation-50:        #1e3a2c;
+     --theme-elevation-100:       #243f31;
+     --theme-elevation-150:       #27493a;
+     --theme-elevation-200:       #2d5242;
+     --theme-elevation-500:       #3d6e58;
+     --theme-elevation-800:       #4a8068;
+     --theme-elevation-1000:      #5a9278;
+   
+     --theme-text:                #F0EBE1;
+     --theme-text-disabled:       rgba(240, 235, 225, 0.35);
+   
+     --theme-success-50:          rgba(194, 90, 53, 0.08);
+     --theme-success-100:         rgba(194, 90, 53, 0.15);
+     --theme-success-500:         #C25A35;
+     --theme-success-600:         #A84A28;
+   
+     --theme-error-50:            rgba(220, 80, 60, 0.1);
+     --theme-error-500:           #DC503C;
+     --theme-error-600:           #C44030;
+   
+     --theme-warning-500:         #D4A04A;
+   
+     --theme-border-color:        rgba(240, 235, 225, 0.1);
+     --theme-border-color-hover:  rgba(240, 235, 225, 0.22);
+   
+     scrollbar-color: rgba(194, 90, 53, 0.4) rgba(26, 49, 38, 0.3);
+     scrollbar-width: thin;
+   }
+   
+   /* ── Typography ── */
+   body {
+     font-family: 'Inter', system-ui, sans-serif !important;
+   }
+   
+   h1, h2, h3 {
+     font-family: 'Playfair Display', Georgia, serif !important;
+     font-weight: 400;
+     color: #F0EBE1 !important;
+   }
+   
+   /* ── Nav / Sidebar ── */
+   .nav {
+     background: #152a20 !important;
+     border-right: 1px solid rgba(240, 235, 225, 0.08) !important;
+   }
+   
+   .nav__link {
+     color: rgba(240, 235, 225, 0.7) !important;
+     border-radius: 4px;
+     transition: background 0.15s ease, color 0.15s ease !important;
+   }
+   
+   .nav__link:hover,
+   .nav__link--active {
+     background: rgba(194, 90, 53, 0.12) !important;
+     color: #F0EBE1 !important;
+   }
+   
+   .nav__link--active {
+     border-left: 2px solid #C25A35 !important;
+   }
+   
+   /* ── Buttons ── */
+   .btn--style-primary {
+     background: #C25A35 !important;
+     border-color: #C25A35 !important;
+     color: #fff !important;
+     font-size: 0.82rem !important;
+     letter-spacing: 0.06em !important;
+     text-transform: uppercase !important;
+     border-radius: 3px !important;
+     transition: background 0.2s ease !important;
+   }
+   
+   .btn--style-primary:hover {
+     background: #A84A28 !important;
+     border-color: #A84A28 !important;
+   }
+   
+   .btn--style-secondary {
+     border-color: rgba(240, 235, 225, 0.25) !important;
+     color: #F0EBE1 !important;
+     border-radius: 3px !important;
+   }
+   
+   .btn--style-secondary:hover {
+     border-color: rgba(240, 235, 225, 0.5) !important;
+     background: rgba(240, 235, 225, 0.05) !important;
+   }
+   
+   /* ── Inputs ── */
+   .field-type input,
+   .field-type textarea,
+   .field-type select,
+   input[type="text"],
+   input[type="email"],
+   input[type="password"],
+   input[type="number"],
+   textarea,
+   select {
+     background: #152a20 !important;
+     border-color: rgba(240, 235, 225, 0.15) !important;
+     color: #F0EBE1 !important;
+     border-radius: 4px !important;
+   }
+   
+   .field-type input:focus,
+   input:focus,
+   textarea:focus,
+   select:focus {
+     border-color: #C25A35 !important;
+     outline: none !important;
+     box-shadow: 0 0 0 2px rgba(194, 90, 53, 0.15) !important;
+   }
+   
+   input::placeholder,
+   textarea::placeholder {
+     color: rgba(240, 235, 225, 0.3) !important;
+   }
+   
+   /* ── Table ── */
+   .cell,
+   .table td,
+   .table th {
+     border-color: rgba(240, 235, 225, 0.08) !important;
+   }
+   
+   .table tr:hover td {
+     background: rgba(39, 73, 58, 0.5) !important;
+   }
+   
+   .row-title a {
+     color: #F0EBE1 !important;
+   }
+   
+   .row-title a:hover {
+     color: #C25A35 !important;
+   }
+   
+   /* ── Dashboard cards ── */
+   .dashboard__card-list .card {
+     background: #1e3a2c !important;
+     border: 1px solid rgba(240, 235, 225, 0.08) !important;
+     border-radius: 6px !important;
+     transition: border-color 0.2s ease, transform 0.2s ease !important;
+   }
+   
+   .dashboard__card-list .card:hover {
+     border-color: rgba(194, 90, 53, 0.35) !important;
+     transform: translateY(-1px) !important;
+   }
+   
+   /* ── Scrollbars ── */
+   ::-webkit-scrollbar { width: 6px; height: 6px; }
+   ::-webkit-scrollbar-track { background: rgba(26, 49, 38, 0.3); }
+   ::-webkit-scrollbar-thumb { background: rgba(194, 90, 53, 0.4); border-radius: 3px; }
+   ::-webkit-scrollbar-thumb:hover { background: rgba(194, 90, 53, 0.65); }
+   
+   /* ── Checkbox ── */
+   .checkbox-input__input:checked + .checkbox-input__icon {
+     background: #C25A35 !important;
+     border-color: #C25A35 !important;
+   }
