@@ -311,7 +311,7 @@ const Products: CollectionConfig = {
       label: "3D Model URL (Auto-generated)",
       type: "text",
       admin: {
-        readOnly: true,
+        // readOnly: true,
         description:
           "Auto-generated GLB file URL. Populated automatically after product creation (~30-40 min).",
       },
