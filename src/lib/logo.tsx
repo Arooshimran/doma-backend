@@ -4,7 +4,7 @@ import React from 'react'
 export const Logo = () => {
   return (
     <Image
-      src="/logo-ez-ez.png"
+      src="/doma-logo-2.png"
       alt="DOMA"
       width={180}
       height={60}

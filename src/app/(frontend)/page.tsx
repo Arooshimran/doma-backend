@@ -27,8 +27,8 @@ export default async function HomePage() {
           />
         </div>
 
-        {!user && <h1>Backend Dashboard</h1>}
-        {user && <h1>Welcome back, {user.email}</h1>}
+        {!user && <h1>Admin Dashboard</h1>}
+        {user && <h1>Welcome back, {(user as any).firstName}  </h1>}
 
         <p className="subtitle">Multi-Vendor Furniture Platform</p>
 
