@@ -59,7 +59,7 @@ export async function PATCH(
     const body = await request.json()
     const { orderStatus } = body
 
-    const validStatuses = ["pending", "paid", "processing", "shipped", "delivered", "canceled"]
+    const validStatuses = ["pending", "paid", "processing", "shipped", "delivered"/*, "canceled"*/]
     if (!validStatuses.includes(orderStatus)) {
       return NextResponse.json(
         { error: `Invalid status: ${orderStatus}` },

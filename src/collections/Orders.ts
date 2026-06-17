@@ -8,7 +8,7 @@ const ORDER_STATUS_OPTIONS = [
   { label: "Processing", value: "processing" },
   { label: "Shipped", value: "shipped" },
   { label: "Delivered", value: "delivered" },
-  { label: "Canceled", value: "canceled" },
+  // { label: "Canceled", value: "canceled" },
 ] as Array<{ label: string; value: string }>
 
 const ORDER_STATUS_VALUES = ORDER_STATUS_OPTIONS.map((status) => status.value)
@@ -199,30 +199,30 @@ const Orders: CollectionConfig = {
         const prevStatus = originalDoc?.orderStatus
         const alreadyAdjusted = originalDoc?.inventoryAdjusted ?? false
 
-        if (nextStatus === 'canceled' && alreadyAdjusted) {
-          const items = originalDoc?.items ?? []
-          for (const item of items) {
-            const productId = resolveRelationId(item.product)
-            if (!productId) continue
-            const product = await payload.findByID({
-              collection: COLLECTION_SLUGS.PRODUCTS,
-              id: productId,
-              depth: 0,
-            })
-            await payload.update({
-              collection: COLLECTION_SLUGS.PRODUCTS,
-              id: productId,
-              data: {
-                inventory: {
-                  ...product.inventory,
-                  quantity: (product?.inventory?.quantity ?? 0) + toQuantity(item.quantity),
-                },
-              },
-            })
-          }
-          data.inventoryAdjusted = false
-          return data
-        }
+        // if (nextStatus === 'canceled' && alreadyAdjusted) {
+        //   const items = originalDoc?.items ?? []
+        //   for (const item of items) {
+        //     const productId = resolveRelationId(item.product)
+        //     if (!productId) continue
+        //     const product = await payload.findByID({
+        //       collection: COLLECTION_SLUGS.PRODUCTS,
+        //       id: productId,
+        //       depth: 0,
+        //     })
+        //     await payload.update({
+        //       collection: COLLECTION_SLUGS.PRODUCTS,
+        //       id: productId,
+        //       data: {
+        //         inventory: {
+        //           ...product.inventory,
+        //           quantity: (product?.inventory?.quantity ?? 0) + toQuantity(item.quantity),
+        //         },
+        //       },
+        //     })
+        //   }
+        //   data.inventoryAdjusted = false
+        //   return data
+        // }
 
         const shouldAdjust = STOCK_CONFIRMATION_STATUSES.has(nextStatus) && !alreadyAdjusted
         if (!shouldAdjust) return data
@@ -315,12 +315,12 @@ async function sendOrderStatusUpdateEmail(payload: any, order: any, customer: an
       accentColor: "#22c55e",
       message: "has been delivered. Enjoy your DOMA products!",
     },
-    canceled: {
-      label: "Canceled",
-      color: "#dc2626",
-      accentColor: "#ef4444",
-      message: "has been canceled as requested.",
-    },
+    // canceled: {
+    //   label: "Canceled",
+    //   color: "#dc2626",
+    //   accentColor: "#ef4444",
+    //   message: "has been canceled as requested.",
+    // },
   }
 
   const config = statusConfig[order.orderStatus] ?? {
