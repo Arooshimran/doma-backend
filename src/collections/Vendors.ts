@@ -193,7 +193,7 @@ const Vendors: CollectionConfig = {
       defaultValue: 2000,
       admin: {
         placeholder: "2000",
-        description: "Default delivery charge is PKR 250. You can override it with your own rate.",
+        description: "Default delivery charge is PKR 2000. You can override it with your own rate.",
       },
     },
     {

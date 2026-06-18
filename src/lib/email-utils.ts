@@ -5,7 +5,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 export async function sendVendorApprovalEmail(vendor: { email: string, name?: string }) {
   try {
     await resend.emails.send({
-      from: 'Doma <onboarding@resend.dev>', 
+      from: 'DOMA <support@thedoma.shop>',
       to: vendor.email,
       subject: 'Vendor Approval Notification',
       html: `<p>Hi ${vendor.name || 'Vendor'},</p>
@@ -20,7 +20,7 @@ export async function sendVendorApprovalEmail(vendor: { email: string, name?: st
 export async function sendVendorRejectionEmail(vendor: { email: string, name?: string }, reason?: string) {
   try {
     await resend.emails.send({
-      from: 'Doma <onboarding@resend.dev>',
+      from: 'DOMA <support@thedoma.shop>',
       to: vendor.email,
       subject: 'Vendor Application Rejected',
       html: `<p>Hi ${vendor.name || 'Vendor'},</p>

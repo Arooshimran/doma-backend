@@ -221,7 +221,7 @@ const Customers: CollectionConfig = {
           })
 
           await resend.emails.send({
-            from: 'DOMA <onboarding@resend.dev>',
+            from: 'DOMA <support@thedoma.shop>',
             to: email,
             subject: 'Your DOMA Password Reset Code',
             html: `
