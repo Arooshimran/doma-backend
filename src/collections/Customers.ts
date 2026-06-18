@@ -225,18 +225,75 @@ const Customers: CollectionConfig = {
             to: email,
             subject: 'Your DOMA Password Reset Code',
             html: `
-              <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto;">
-                <h2 style="color: #2d6a4f;">Reset Your Password</h2>
-                <p>Hi ${customer.Name || 'there'},</p>
-                <p>Use the code below to reset your DOMA password. This code expires in <strong>10 minutes</strong>.</p>
-                <div style="background: #f4f4f4; border-radius: 10px; padding: 20px; text-align: center; margin: 25px 0;">
-                  <span style="font-size: 42px; font-weight: bold; letter-spacing: 10px; color: #2d6a4f;">
-                    ${otp}
-                  </span>
-                </div>
-                <p style="color: #999; font-size: 13px;">If you didn't request this, ignore this email.</p>
-              </div>
+              <!DOCTYPE html>
+              <html lang="en">
+              <head>
+                <meta charset="UTF-8" />
+                <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+                <title>Password Reset</title>
+              </head>
+              <body style="margin:0;padding:0;background-color:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+                <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f5;padding:40px 0;">
+                  <tr>
+                    <td align="center">
+                      <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,0.08);">
+
+                        <!-- Header -->
+                        <tr>
+                          <td style="background-color:#1A3126;padding:32px 40px;text-align:center;">
+                            <img src="https://res.cloudinary.com/dnokhszdv/image/upload/v1780759093/payload-media/file_yylpmi.png" alt="DOMA" width="140" style="display:block;margin:0 auto;" />
+                          </td>
+                        </tr>
+
+                        <!-- Accent bar -->
+                        <tr>
+                          <td style="background:#BB4E2C;height:4px;"></td>
+                        </tr>
+
+                        <!-- Body -->
+                        <tr>
+                          <td style="padding:40px 40px 24px;">
+                            <p style="margin:0 0 8px;font-size:13px;font-weight:600;color:#BB4E2C;text-transform:uppercase;letter-spacing:0.8px;">Password Reset</p>
+                            <h1 style="margin:0 0 24px;font-size:28px;font-weight:700;color:#0a0a0a;line-height:1.2;">Reset your password</h1>
+                            <p style="margin:0 0 16px;font-size:16px;color:#374151;line-height:1.6;">Hi <strong>${customer.Name || 'there'}</strong>,</p>
+                            <p style="margin:0 0 28px;font-size:16px;color:#374151;line-height:1.6;">
+                              Use the code below to reset your DOMA password. This code expires in <strong>10 minutes</strong>.
+                            </p>
+
+                            <!-- OTP card -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:28px;">
+                              <tr>
+                                <td style="padding:32px 24px;text-align:center;">
+                                  <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.6px;">Your reset code</p>
+                                  <p style="margin:0;font-size:48px;font-weight:700;letter-spacing:16px;color:#1A3126;">${otp}</p>
+                                </td>
+                              </tr>
+                            </table>
+
+                            <p style="margin:0;font-size:14px;color:#9ca3af;line-height:1.6;">
+                              If you didn't request a password reset, you can safely ignore this email.
+                            </p>
+                          </td>
+                        </tr>
+
+                        <!-- Footer -->
+                        <tr>
+                          <td style="padding:24px 40px;border-top:1px solid #e5e7eb;">
+                            <p style="margin:0;font-size:13px;color:#9ca3af;text-align:center;line-height:1.6;">
+                              This email was sent by DOMA Marketplace · <a href="https://www.thedoma.shop" style="color:#9ca3af;">thedoma.shop</a><br/>
+                              Questions? Contact us at <a href="mailto:support@thedoma.shop" style="color:#9ca3af;">support@thedoma.shop</a>
+                            </p>
+                          </td>
+                        </tr>
+
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </body>
+              </html>
             `,
+            text: `Your DOMA Password Reset Code\n\nHi ${customer.Name || 'there'},\n\nYour reset code is: ${otp}\n\nThis code expires in 10 minutes.\n\nIf you didn't request this, ignore this email.\n\nDOMA Marketplace · thedoma.shop`,
           })
 
           return corsResponse(req, { success: true, message: "OTP sent to your email." })
@@ -372,6 +429,23 @@ const Customers: CollectionConfig = {
         { name: "zipCode", type: "text", required: true },
         { name: "country", type: "text", required: true },
         { name: "isDefault", type: "checkbox", defaultValue: false },
+      ],
+    },
+    {
+      name: "aiRedesigns",
+      type: "array",
+      admin: { readOnly: true },
+      access: {
+        read: ({ req: { user }, doc }: any) => {
+          if (user?.role === 'admin') return true
+          return user?.id === doc?.id
+        },
+      },
+      fields: [
+        { name: "imageUrl", type: "text", required: true },
+        { name: "prompt", type: "text" },
+        { name: "roomType", type: "text" },
+        { name: "createdAt", type: "date" },
       ],
     },
     {
