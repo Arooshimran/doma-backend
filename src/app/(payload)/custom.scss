@@ -171,3 +171,11 @@
      background: #C25A35 !important;
      border-color: #C25A35 !important;
    }
+
+   /* ── React Select dummy input fix ── */
+   input[id^="react-select"] {
+     background: transparent !important;
+     border: none !important;
+     border-radius: 0 !important;
+     box-shadow: none !important;
+   }
