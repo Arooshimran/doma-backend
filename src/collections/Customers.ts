@@ -434,7 +434,6 @@ const Customers: CollectionConfig = {
     {
       name: "aiRedesigns",
       type: "array",
-      admin: { readOnly: true },
       access: {
         read: ({ req: { user }, doc }: any) => {
           if (user?.collection === 'users') return true
