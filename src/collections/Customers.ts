@@ -437,7 +437,7 @@ const Customers: CollectionConfig = {
       admin: { readOnly: true },
       access: {
         read: ({ req: { user }, doc }: any) => {
-          if (user?.role === 'admin') return true
+          if (user?.collection === 'users') return true
           return user?.id === doc?.id
         },
       },
