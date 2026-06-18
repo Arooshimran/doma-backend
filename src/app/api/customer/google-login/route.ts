@@ -36,9 +36,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    const audience = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+    ].filter(Boolean) as string[]
+
     const ticket = await client.verifyIdToken({
       idToken,
-      audience: process.env.GOOGLE_CLIENT_ID,
+      audience,
     })
 
     const googlePayload = ticket.getPayload()
