@@ -87,10 +87,11 @@ export async function GET(request: NextRequest) {
         filename: typeof vendor.storeLogo === 'object' ? vendor.storeLogo.filename : ''
       } : null,
       
+      deliveryCharges: vendor.deliveryCharges ?? 2000,
       createdAt: vendor.createdAt,
       updatedAt: vendor.updatedAt,
     }
-        
+
     return NextResponse.json(
       { success: true, vendor: vendorProfile },
       { headers }
@@ -151,7 +152,8 @@ export async function PUT(request: NextRequest) {
         businessLicense: body.businessInfo?.businessLicense || '',
         taxId: body.businessInfo?.taxId || '',
         businessType: body.businessInfo?.businessType || ''
-      }
+      },
+      ...(body.deliveryCharges !== undefined && { deliveryCharges: Number(body.deliveryCharges) }),
     }
     
     if (body.storeLogo !== undefined) {
@@ -201,6 +203,7 @@ export async function PUT(request: NextRequest) {
         filename: typeof updatedVendor.storeLogo === 'object' ? updatedVendor.storeLogo.filename : ''
       } : null,
       
+      deliveryCharges: updatedVendor.deliveryCharges ?? 2000,
       createdAt: updatedVendor.createdAt,
       updatedAt: updatedVendor.updatedAt,
     }
